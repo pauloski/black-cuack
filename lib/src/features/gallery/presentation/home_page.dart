@@ -36,17 +36,13 @@ class HomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
-            // Botón de Nuevo Proyecto usando tu componente
             QuackButton(
               text: '+ NUEVO PROYECTO',
               onPressed: () {
                 print("Creando nuevo stop-motion...");
               },
             ),
-            
             const SizedBox(height: 40),
-            
             const Text(
               'RECIENTES',
               style: TextStyle(
@@ -56,39 +52,36 @@ class HomePage extends StatelessWidget {
                 letterSpacing: 2,
               ),
             ),
-            
             const SizedBox(height: 20),
-            
-            // data dummy para mostrar los proyectos recientes en tarjetas
-       Expanded(
-  child: GridView.count(
-    crossAxisCount: 2, // 2 columnas
-    crossAxisSpacing: 15,
-    mainAxisSpacing: 15,
-    children: const [
-      QuackCard(
-        title: "Mi primer Pato",
-        date: "Hace 2 horas",
-        borderColor: Color(0xFFC1FFFE), // Cian
-      ),
-      QuackCard(
-        title: "Caos Creativo",
-        date: "Ayer",
-        borderColor: Color(0xFFBC87FE), // Púrpura
-      ),
-      QuackCard(
-        title: "Stop Motion 1",
-        date: "15 Mar",
-        borderColor: Color(0xFFF3FFCA), // Lima
-      ),
-      QuackCard(
-        title: "Prueba Ruido",
-        date: "10 Mar",
-        borderColor: Color(0xFFC1FFFE),
-      ),
-    ],
-  ),
-),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                children: const [
+                  QuackCard(
+                    title: "Mi primer Pato",
+                    date: "Hace 2 horas",
+                    borderColor: Color(0xFFC1FFFE),
+                  ),
+                  QuackCard(
+                    title: "Caos Creativo",
+                    date: "Ayer",
+                    borderColor: Color(0xFFBC87FE),
+                  ),
+                  QuackCard(
+                    title: "Stop Motion 1",
+                    date: "15 Mar",
+                    borderColor: Color(0xFFF3FFCA),
+                  ),
+                  QuackCard(
+                    title: "Prueba Ruido",
+                    date: "10 Mar",
+                    borderColor: Color(0xFFC1FFFE),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
