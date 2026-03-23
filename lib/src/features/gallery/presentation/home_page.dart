@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -37,11 +38,13 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             QuackButton(
-              text: '+ NUEVO PROYECTO',
-              onPressed: () {
-                print("Creando nuevo stop-motion...");
-              },
-            ),
+  text: '+ NUEVO PROYECTO',
+  onPressed: () {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const CameraPage()),
+    );
+  },
+),
             const SizedBox(height: 40),
             const Text(
               'RECIENTES',
