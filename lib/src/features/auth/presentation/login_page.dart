@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -6,6 +8,8 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Usamos el fondo oscuro de tu marca
+      backgroundColor: const Color(0xFF0E0E0E),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -13,66 +17,49 @@ class LoginPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Título con LuckiestGuy
+              // 1. Título con tu fuente LuckiestGuy
               const Text(
                 'READY TO\nQUACK?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'LuckiestGuy',
-                  fontSize: 48,
+                  fontSize: 56, // Un poco más grande para impacto
                   color: Color(0xFFC1FFFE),
-                  height: 1,
+                  height: 0.9,
                 ),
               ),
-              const SizedBox(height: 10),
-              // Subtítulo con Barriecito
+              
+              const SizedBox(height: 15),
+              
+              // 2. Subtítulo con Barriecito
               const Text(
                 'Make some noise, creative chaos.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Barriecito',
-                  fontSize: 20,
+                  fontSize: 22,
                   color: Color(0xFFBC87FE),
                 ),
               ),
-              const SizedBox(height: 50),
-              // Campo de texto para el código (Estilo Lexend)
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'CÓDIGO DE TALLER',
-                  hintStyle: const TextStyle(fontFamily: 'Lexend', color: Colors.white24),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.all(20),
-                ),
-                style: const TextStyle(fontFamily: 'Lexend', color: Colors.white),
+              
+              const SizedBox(height: 60),
+              
+              // 3. Tu nuevo componente de texto (Limpio y reutilizable)
+              const QuackTextField(
+                hintText: 'CÓDIGO DE TALLER',
               ),
-              const SizedBox(height: 20),
-              // Botón Principal
-              ElevatedButton(
-                onPressed: () {
-                  // Lógica de entrada
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC1FFFE),
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                child: const Text(
-                  '¡ENTRAR!',
-                  style: TextStyle(
-                    fontFamily: 'LuckiestGuy',
-                    color: Color(0xFF0E0E0E),
-                    fontSize: 22,
-                  ),
-                ),
-              ),
+              
+              const SizedBox(height: 25),
+              
+              // 4. Tu nuevo botón con sombra "Pop" (Limpio y reutilizable)
+           QuackButton(
+  text: '¡ENTRAR!',
+  onPressed: () {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const HomePage()),
+    );
+  },
+),
             ],
           ),
         ),
