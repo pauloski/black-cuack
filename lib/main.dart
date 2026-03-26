@@ -1,69 +1,64 @@
 import 'package:flutter/material.dart';
-// Importa la nueva página arriba
+import 'package:firebase_core/firebase_core.dart';
+// Importamos las opciones generadas por FlutterFire
+import 'firebase_options.dart'; 
+
+// Importa tu página de login
 import 'package:blackcuack_studio/src/features/auth/presentation/login_page.dart';
 
-void main() {
-  runApp(const BlackcuackApp());
+void main() async {
+  // 1. Asegura que los bindings de Flutter estén listos para procesos async
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Inicializa Firebase usando el archivo que ya tienes en tu carpeta lib
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("🦆 ¡Quack! Motor de Firebase encendido y conectado.");
+  } catch (e) {
+    print("⚠️ Error al inicializar Firebase: $e");
+  }
+  
+  runApp(const BlackCuackApp());
 }
 
-class BlackcuackApp extends StatelessWidget {
-  const BlackcuackApp({super.key});
+class BlackCuackApp extends StatelessWidget {
+  const BlackCuackApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Blackcuack Studio',
       debugShowCheckedModeBanner: false,
+      
       // Aplicamos tu Design System: The Kinetic Canvas
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0E0E0E), // Fondo Materia Oscura
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFC1FFFE), // Cian Neón
+          primary: Color(0xFFC1FFFE),   // Cian Neón
           secondary: Color(0xFFBC87FE), // Púrpura Vibrante
-          tertiary: Color(0xFFF3FFCA), // Verde Lima (IA)
-          surface: Color(0xFF1A1A1A), // Paneles
+          tertiary: Color(0xFFF3FFCA),  // Verde Lima (IA)
+          surface: Color(0xFF1A1A1A),   // Paneles
         ),
-        // Tipografía por defecto (luego podemos importar Lexend)
+        
+        // Configuración de textos y fuentes de marca
         textTheme: const TextTheme(
-          displayLarge: TextStyle(color: Color(0xFFC1FFFE), fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(color: Color(0xFFADAAAA)), // On surface variant
+          displayLarge: TextStyle(
+            color: Color(0xFFC1FFFE), 
+            fontWeight: FontWeight.bold, 
+            fontFamily: 'LuckiestGuy'
+          ),
+          bodyMedium: TextStyle(
+            color: Color(0xFFADAAAA), 
+            fontFamily: 'Lexend'
+          ),
         ),
       ),
-     // home: const SplashPage(),
+      
+      // La puerta de entrada es tu página de Login
       home: const LoginPage(),
-    );
-  }
-}
-
-class SplashPage extends StatelessWidget {
-  const SplashPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Aquí irá tu logo del patito más adelante
-            const Icon(Icons.blur_on, size: 100, color: Color(0xFFC1FFFE)),
-            const SizedBox(height: 20),
-            Text(
-              'MAKE SOME NOISE',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontSize: 32,
-                letterSpacing: 2.0,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Creative Chaos Activated',
-              style: TextStyle(color: Color(0xFFBC87FE), fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
