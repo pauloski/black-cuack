@@ -1,15 +1,21 @@
 import 'dart:io';
-import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
-import 'package:gallery_saver/gallery_saver.dart';
+import 'package:share_plus/share_plus.dart'; // Para compartir por WhatsApp
 
-// Importaciones de tus modelos y persistencia
+// Utilidades y Modelos
+import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/core/persistence/project_storage.dart';
-import 'package:blackcuack_studio/src/features/gallery/data/project_service.dart';
+
+// Importación de tu servicio funcional
+import 'package:blackcuack_studio/src/features/auth/data/project_service.dart'; 
+
+// Widgets Refactorizados
+import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/camera_viewer.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/camera_controls.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/camera_timeline.dart';
 
 class CameraPage extends StatefulWidget {
   final QuackProject? projectToLoad; 
@@ -22,8 +28,6 @@ class CameraPage extends StatefulWidget {
 class _CameraPageState extends State<CameraPage> {
   CameraController? controller;
   List<CameraDescription>? cameras;
-  
-  // Instancia única del servicio
   final ProjectService _projectService = ProjectService(); 
   
   // --- ESTADO ---
@@ -44,9 +48,7 @@ class _CameraPageState extends State<CameraPage> {
     _initCamera();
     if (isEditing) {
       capturedPhotos = widget.projectToLoad!.photoPaths.map((path) => XFile(path)).toList();
-      if (capturedPhotos.isNotEmpty) {
-        lastCapturedPhoto = capturedPhotos.last;
-      }
+      if (capturedPhotos.isNotEmpty) lastCapturedPhoto = capturedPhotos.last;
     }
   }
 
@@ -55,8 +57,7 @@ class _CameraPageState extends State<CameraPage> {
     if (cameras != null && cameras!.isNotEmpty) {
       controller = CameraController(cameras![0], ResolutionPreset.high);
       await controller!.initialize();
-      if (!mounted) return;
-      setState(() {});
+      if (mounted) setState(() {});
     }
   }
 
@@ -66,6 +67,7 @@ class _CameraPageState extends State<CameraPage> {
     super.dispose();
   }
 
+  // --- LÓGICA DE CAPTURA Y REPRODUCCIÓN ---
   Future<void> _takePhoto() async {
     if (controller == null || !controller!.value.isInitialized) return;
     try {
@@ -75,33 +77,24 @@ class _CameraPageState extends State<CameraPage> {
         capturedPhotos.add(file); 
         selectedIndex = null; 
       });
-    } catch (e) { print("Error: $e"); }
+    } catch (e) { print("Error captura: $e"); }
   }
 
   void _playSequence() async {
     if (capturedPhotos.isEmpty) return;
-    setState(() { 
-      isPlaying = true; 
-      previewIndex = 0; 
-      selectedIndex = null; 
-    });
-
+    setState(() { isPlaying = true; previewIndex = 0; selectedIndex = null; });
     for (int i = 0; i < capturedPhotos.length; i++) {
       if (!mounted || !isPlaying) break;
       setState(() => previewIndex = i);
       await Future.delayed(Duration(milliseconds: (1000 / fps).round()));
     }
-
     await Future.delayed(const Duration(seconds: 1));
-    if (mounted && isPlaying) {
-      _stopPlayback();
-    }
+    if (mounted && isPlaying) _stopPlayback();
   }
 
-  void _stopPlayback() {
-    setState(() => isPlaying = false);
-  }
+  void _stopPlayback() => setState(() => isPlaying = false);
 
+  // --- EXPORTACIÓN (AJUSTADA AL NUEVO VIDEOCREATOR) ---
   Future<void> _exportVideo() async {
     if (capturedPhotos.isEmpty) return;
     double progress = 0;
@@ -115,24 +108,14 @@ class _CameraPageState extends State<CameraPage> {
           updateProgressDialog = (val) => setDialogState(() => progress = val);
           return AlertDialog(
             backgroundColor: const Color(0xFF1A1A1A),
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Color(0xFFBC87FE), width: 2),
-              borderRadius: BorderRadius.circular(20),
-            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("COCINANDO TU QUACK", 
-                  style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE))),
+                const Text("COCINANDO TU QUACK", style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE))),
                 const SizedBox(height: 20),
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.white10,
-                  color: const Color(0xFFBC87FE),
-                ),
+                LinearProgressIndicator(value: progress, color: const Color(0xFFBC87FE)),
                 const SizedBox(height: 10),
-                Text("${(progress * 100).toInt()}%", 
-                  style: const TextStyle(color: Colors.white, fontSize: 12)),
+                Text("${(progress * 100).toInt()}%", style: const TextStyle(color: Colors.white70, fontSize: 10)),
               ],
             ),
           );
@@ -141,220 +124,134 @@ class _CameraPageState extends State<CameraPage> {
     );
 
     try {
-      await VideoCreator.export(
-        capturedPhotos.map((x) => x.path).toList(),
+      // Llamamos al export que ahora devuelve un String?
+      final String? videoPath = await VideoCreator.export(
+        capturedPhotos.map((x) => x.path).toList(), 
         fps,
-        onProgress: (val) {
-          if (updateProgressDialog != null) updateProgressDialog!(val);
-        },
+        onProgress: (val) => updateProgressDialog?.call(val),
       );
-      if (mounted) Navigator.pop(context); 
+
+      if (mounted) Navigator.pop(context); // Cerrar cargador
+
+      // Si estamos en móvil y hay ruta, compartimos
+      if (!kIsWeb && videoPath != null) {
+        await Share.shareXFiles([XFile(videoPath)], text: '¡Mira mi animación en Blackcuack Studio! 🦆');
+      }
+      // En Web no hacemos nada extra aquí porque el VideoCreator ya dispara la descarga del GIF
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      print("Error exportando: $e");
     }
   }
 
+  // --- AJUSTES Y GUARDADO ---
   void _showSettings() {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(25),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Center(child: Text("VELOCIDAD (FPS)", style: TextStyle(color: Color(0xFFC1FFFE), fontFamily: 'LuckiestGuy', fontSize: 16))),
+              Row(
                 children: [
-                  const Text("AJUSTES DE CÁMARA", style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE), fontSize: 20)),
-                  const SizedBox(height: 20),
-                  _buildSettingRow(Icons.opacity, "CEBOLLA", onionOpacity, (v) {
-                    setModalState(() => onionOpacity = v);
-                    setState(() => onionOpacity = v);
-                  }),
-                  const SizedBox(height: 20),
-                  _buildSettingRow(Icons.speed, "VELOCIDAD (${fps.toInt()} FPS)", fps / 24, (v) {
-                    double newFps = (v * 24).clamp(1, 24);
-                    setModalState(() => fps = newFps);
-                    setState(() => fps = newFps);
-                  }, minLabel: "1", maxLabel: "24"),
+                  Expanded(child: Slider(value: fps, min: 1, max: 24, divisions: 23, activeColor: const Color(0xFFBC87FE), onChanged: (v) {
+                    setModalState(() => fps = v);
+                    setState(() => fps = v);
+                  })),
+                  Text("${fps.round()}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
-            );
-          },
-        );
-      },
+              const SizedBox(height: 30),
+              const Center(child: Text("PAPEL CEBOLLA", style: TextStyle(color: Color(0xFFC1FFFE), fontFamily: 'LuckiestGuy', fontSize: 16))),
+              Row(
+                children: [
+                  const Text("SIN OPACIDAD", style: TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'Lexend')),
+                  Expanded(child: Slider(value: onionOpacity, min: 0.0, max: 1.0, activeColor: const Color(0xFFC1FFFE), onChanged: (v) {
+                    setModalState(() => onionOpacity = v);
+                    setState(() => onionOpacity = v);
+                  })),
+                  const Text("TRANSPARENTE", style: TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'Lexend')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Future<void> _saveChanges() async {
-    if (capturedPhotos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("¡Toma algunas fotos primero!")),
-      );
-      return;
-    }
-
+    if (capturedPhotos.isEmpty) return;
     if (isEditing) {
-      final updatedProject = QuackProject(
+      final updated = QuackProject(
         id: widget.projectToLoad!.id,
         name: widget.projectToLoad!.name,
-        photoPaths: capturedPhotos.map((xfile) => xfile.path).toList(),
+        photoPaths: capturedPhotos.map((x) => x.path).toList(),
         date: DateTime.now(),
       );
-
-      await ProjectStorage.saveProject(updatedProject);
-      await _projectService.saveProject(updatedProject); 
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("¡Cambios sincronizados!")),
-        );
-        Navigator.pop(context);
-      }
+      await ProjectStorage.saveProject(updated);
+      await _projectService.saveProject(updated);
+      if (mounted) Navigator.pop(context);
     } else {
       _showNameDialog();
     }
   }
-void _showNameDialog() {
-    TextEditingController nameController = TextEditingController();
 
+  void _showNameDialog() {
+    TextEditingController nameController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Color(0xFFC1FFFE), width: 2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          "¡NOMBRA TU QUACK!",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFBC87FE)),
-          textAlign: TextAlign.center,
-        ),
-        content: TextField(
-          controller: nameController,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white, fontFamily: 'Lexend'),
-          decoration: const InputDecoration(
-            hintText: "Ej: Mi Pato Aventurero",
-            hintStyle: TextStyle(color: Colors.white24),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFC1FFFE))),
-          ),
-        ),
+        title: const Text("¡NOMBRA TU QUACK!", style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFBC87FE))),
+        content: TextField(controller: nameController, autofocus: true, style: const TextStyle(color: Colors.white)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("CANCELAR", style: TextStyle(color: Colors.redAccent, fontFamily: 'Lexend')),
-          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC1FFFE)),
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
-                // 1. Mostrar pantalla de carga (evita que parezca colgado)
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFC1FFFE)),
-                  ),
-                );
-
-                final nuevoProyecto = QuackProject(
+                showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
+                final nuevo = QuackProject(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: nameController.text,
-                  photoPaths: capturedPhotos.map((xfile) => xfile.path).toList(),
+                  photoPaths: capturedPhotos.map((x) => x.path).toList(),
                   date: DateTime.now(),
                 );
-
-                try {
-                  // 2. Guardar localmente
-                  await ProjectStorage.saveProject(nuevoProyecto);
-                  
-                  // 3. Subir a la nube (Storage + Firestore)
-                  await _projectService.saveProject(nuevoProyecto); 
-
-                  if (mounted) {
-                    Navigator.pop(context); // Quita el cargador
-                    Navigator.pop(context); // Cierra el diálogo de nombre
-                    Navigator.pop(context); // Vuelve a la Home
-                  }
-                } catch (e) {
-                  if (mounted) Navigator.pop(context); // Quita el cargador si hay error
-                  print("Error al guardar: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error al subir a la nube: $e")),
-                  );
-                }
+                await ProjectStorage.saveProject(nuevo);
+                await _projectService.saveProject(nuevo);
+                if (mounted) { Navigator.pop(context); Navigator.pop(context); Navigator.pop(context); }
               }
             },
-            child: const Text("GUARDAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Lexend')),
+            child: const Text("GUARDAR"),
           ),
         ],
       ),
     );
   }
- 
-  Widget _buildSettingRow(IconData icon, String label, double value, Function(double) onChanged, {String minLabel = "0", String maxLabel = "1"}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontFamily: 'Lexend', color: Colors.white, fontSize: 12)),
-        Row(
-          children: [
-            Icon(icon, color: const Color(0xFFBC87FE), size: 20),
-            Expanded(
-              child: Slider(
-                value: value,
-                activeColor: const Color(0xFFBC87FE),
-                onChanged: onChanged,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
+  // --- BUILD ---
   @override
   Widget build(BuildContext context) {
     if (controller == null || !controller!.value.isInitialized) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Color(0xFFC1FFFE))));
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Center(
-            child: AspectRatio(
-              aspectRatio: controller!.value.aspectRatio,
-              child: Stack(
-                children: [
-                  CameraPreview(controller!),
-                  if (showGrid && !isPlaying)
-                    Positioned.fill(child: CustomPaint(painter: GridPainter())),
-                  if (lastCapturedPhoto != null && !isPlaying && selectedIndex == null)
-                    Opacity(
-                      opacity: onionOpacity,
-                      child: kIsWeb 
-                          ? Image.network(lastCapturedPhoto!.path, fit: BoxFit.cover) 
-                          : Image.file(File(lastCapturedPhoto!.path), fit: BoxFit.cover),
-                    ),
-                  if (selectedIndex != null)
-                    Container(
-                      color: Colors.black,
-                      width: double.infinity, height: double.infinity,
-                      child: kIsWeb 
-                          ? Image.network(capturedPhotos[selectedIndex!].path, fit: BoxFit.contain) 
-                          : Image.file(File(capturedPhotos[selectedIndex!].path), fit: BoxFit.contain),
-                    ),
-                ],
-              ),
-            ),
+          CameraViewer(
+            controller: controller!,
+            showGrid: showGrid,
+            isPlaying: isPlaying,
+            lastCapturedPhoto: lastCapturedPhoto,
+            onionOpacity: onionOpacity,
+            selectedIndex: selectedIndex,
+            capturedPhotos: capturedPhotos,
           ),
 
           if (!isPlaying)
@@ -364,53 +261,38 @@ void _showNameDialog() {
                 children: [
                   Align(
                     alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
-                    ),
+                    child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
                   ),
-
                   Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.black54,
-                              child: IconButton(
-                                icon: Icon(Icons.grid_4x4, color: showGrid ? const Color(0xFFC1FFFE) : Colors.white),
-                                onPressed: () => setState(() => showGrid = !showGrid),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            CircleAvatar(
-                              backgroundColor: Colors.black54,
-                              child: IconButton(icon: const Icon(Icons.tune, color: Colors.white), onPressed: _showSettings),
-                            ),
-                            const SizedBox(width: 12),
-                            CircleAvatar(
-                              backgroundColor: const Color(0xFFBC87FE).withOpacity(0.2),
-                              child: IconButton(
-                                icon: const Icon(Icons.ios_share, color: Color(0xFFBC87FE)),
-                                onPressed: _exportVideo,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            CircleAvatar(
-                              backgroundColor: const Color(0xFFC1FFFE).withOpacity(0.2),
-                              child: IconButton(
-                                icon: Icon(isEditing ? Icons.save : Icons.check, color: const Color(0xFFC1FFFE)),
-                                onPressed: _saveChanges,
-                              ),
-                            ),
-                          ],
-                        ),
+                      CameraControls(
+                        isEditing: isEditing,
+                        showGrid: showGrid,
+                        onToggleGrid: () => setState(() => showGrid = !showGrid),
+                        onShowSettings: _showSettings,
+                        onExport: _exportVideo,
+                        onSave: _saveChanges,
+                        onTakePhoto: _takePhoto,
+                        onPlay: _playSequence,
+                        onUndo: () {
+                          setState(() {
+                            if (selectedIndex != null) {
+                              capturedPhotos.removeAt(selectedIndex!);
+                              selectedIndex = null;
+                            } else {
+                              capturedPhotos.removeLast();
+                            }
+                            lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
+                          });
+                        },
+                        selectedIndex: selectedIndex,
+                        hasPhotos: capturedPhotos.isNotEmpty,
                       ),
-                      const SizedBox(height: 15),
-                      _buildTimeline(),
-                      _buildActionButtons(),
+                      CameraTimeline(
+                        capturedPhotos: capturedPhotos,
+                        selectedIndex: selectedIndex,
+                        onPhotoTap: (index) => setState(() => selectedIndex = index),
+                      ),
                     ],
                   ),
                 ],
@@ -423,150 +305,15 @@ void _showNameDialog() {
     );
   }
 
-  Widget _buildTimeline() {
+  Widget _buildCinemaMode() {
     return Container(
-      height: 70,
-      margin: const EdgeInsets.only(bottom: 15),
-      child: capturedPhotos.isEmpty 
-        ? const Center(child: Text("LISTO PARA EL QUACK", style: TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'Lexend')))
-        : ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: capturedPhotos.length,
-            itemBuilder: (context, index) {
-              final isCurrentSelected = index == selectedIndex;
-              final isLast = index == capturedPhotos.length - 1;
-
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedIndex = isCurrentSelected ? null : index;
-                  });
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  width: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isCurrentSelected 
-                          ? const Color(0xFFBC87FE) 
-                          : (isLast && selectedIndex == null ? const Color(0xFFC1FFFE) : Colors.white10),
-                      width: isCurrentSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: kIsWeb ? Image.network(capturedPhotos[index].path, fit: BoxFit.cover) : Image.file(File(capturedPhotos[index].path), fit: BoxFit.cover),
-                  ),
-                ),
-              );
-            },
-          ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      color: Colors.black,
+      child: Stack(
         children: [
-          IconButton(
-            icon: Icon(
-              selectedIndex != null ? Icons.delete_forever : Icons.undo,
-              color: const Color(0xFFFF4D4D), 
-              size: selectedIndex != null ? 35 : 30
-            ), 
-            onPressed: () {
-              if (capturedPhotos.isEmpty) return;
-              if (selectedIndex != null) {
-                setState(() {
-                  capturedPhotos.removeAt(selectedIndex!);
-                  selectedIndex = null;
-                  lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
-                });
-              } else {
-                setState(() { 
-                  capturedPhotos.removeLast(); 
-                  lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last; 
-                });
-              }
-            }
-          ),
-          GestureDetector(
-            onTap: _takePhoto,
-            child: Container(
-              height: 75, width: 75,
-              decoration: const BoxDecoration(color: Color(0xFFFF4D4D), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.redAccent, blurRadius: 15)]),
-              child: const Icon(Icons.camera_alt, color: Colors.white, size: 35),
-            ),
-          ),
-          IconButton(icon: const Icon(Icons.play_circle_fill, color: Color(0xFFC1FFFE), size: 50), onPressed: _playSequence),
+          Center(child: kIsWeb ? Image.network(capturedPhotos[previewIndex].path) : Image.file(File(capturedPhotos[previewIndex].path))),
+          Positioned(bottom: 50, left: 0, right: 0, child: IconButton(icon: const Icon(Icons.stop_circle, color: Colors.red, size: 80), onPressed: _stopPlayback)),
         ],
       ),
     );
   }
-
-  Widget _buildCinemaMode() {
-    return GestureDetector(
-      onTap: _stopPlayback,
-      child: Container(
-        color: Colors.black,
-        width: double.infinity,
-        height: double.infinity,
-        child: Stack(
-          children: [
-            Center(
-              child: kIsWeb 
-                ? Image.network(capturedPhotos[previewIndex].path, fit: BoxFit.contain) 
-                : Image.file(File(capturedPhotos[previewIndex].path), fit: BoxFit.contain),
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "${previewIndex + 1}/${capturedPhotos.length}",
-                  style: const TextStyle(color: Colors.white24, fontSize: 12, fontFamily: 'Lexend'),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 50,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Opacity(
-                  opacity: 0.5,
-                  child: IconButton(
-                    icon: const Icon(Icons.stop_circle, color: Color(0xFFFF4D4D), size: 80),
-                    onPressed: _stopPlayback,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.5)..strokeWidth = 1.2;
-    canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), paint);
-    canvas.drawLine(Offset(size.width * 2 / 3, 0), Offset(size.width * 2 / 3, size.height), paint);
-    canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), paint);
-    canvas.drawLine(Offset(0, size.height * 2 / 3), Offset(size.width, size.height * 2 / 3), paint);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
