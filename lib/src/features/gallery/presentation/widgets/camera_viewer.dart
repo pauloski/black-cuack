@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
+import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 
 class CameraViewer extends StatefulWidget {
-  // 👈 Cambiado a StatefulWidget
   final CameraController controller;
   final bool showGrid;
   final bool isPlaying;
@@ -14,6 +15,7 @@ class CameraViewer extends StatefulWidget {
   final double onionOpacity;
   final int? selectedIndex;
   final List<XFile> capturedPhotos;
+  final QuackProject? projectToLoad;
 
   const CameraViewer({
     super.key,
@@ -24,20 +26,34 @@ class CameraViewer extends StatefulWidget {
     required this.onionOpacity,
     this.selectedIndex,
     required this.capturedPhotos,
+    this.projectToLoad,
   });
 
   @override
   State<CameraViewer> createState() => CameraViewerState();
 }
 
-// 🦆 Esta clase es la que el "cable" de la CameraPage va a buscar
 class CameraViewerState extends State<CameraViewer> {
-  // 🚀 FUNCIÓN PARA MOSTRAR EL MODAL DE GUARDADO CURADO
+  final GroupService _groupService = GroupService();
+
   void showSaveDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController artistController = TextEditingController();
-    bool isPublished = false;
+    // 🦆 DETECTAR SI ES EDICIÓN
+    final bool isEditing = widget.projectToLoad != null;
+
+    final TextEditingController nameController = TextEditingController(
+      text: isEditing ? widget.projectToLoad!.name : "",
+    );
+    final TextEditingController artistController = TextEditingController(
+      text: isEditing ? widget.projectToLoad!.artistName : "",
+    );
+
     final ProjectService projectService = ProjectService();
+
+    // Estado inicial del modal
+    String? selectedGroupCode = isEditing
+        ? widget.projectToLoad!.workshopCode
+        : null;
+    bool isPublished = isEditing ? widget.projectToLoad!.isPublished : false;
 
     showDialog(
       context: context,
@@ -50,7 +66,7 @@ class CameraViewerState extends State<CameraViewer> {
             side: const BorderSide(color: Color(0xFFBC87FE), width: 1),
           ),
           title: const Text(
-            "🚀 ¡FINALIZAR QUACK!",
+            "🚀 FINALIZAR QUACK",
             style: TextStyle(
               fontFamily: 'LuckiestGuy',
               color: Color(0xFFC1FFFE),
@@ -65,31 +81,114 @@ class CameraViewerState extends State<CameraViewer> {
                   nameController,
                   "TÍTULO DEL PROYECTO",
                   Icons.title,
+                  readOnly: isEditing,
                 ),
                 const SizedBox(height: 15),
                 _buildTextField(
                   artistController,
                   "NOMBRE DEL ARTISTA",
                   Icons.person,
+                  readOnly: isEditing,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
 
-                SwitchListTile(
-                  title: const Text(
-                    "COMPARTIR EN LA CHARCA",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontFamily: 'Lexend',
-                    ),
-                  ),
-                  subtitle: const Text(
-                    "Tus amigos podrán verlo en el taller",
-                    style: TextStyle(color: Colors.white24, fontSize: 10),
-                  ),
-                  value: isPublished,
-                  activeColor: const Color(0xFFBC87FE),
-                  onChanged: (val) => setModalState(() => isPublished = val),
+                // --- SELECTOR DE GRUPOS EN TIEMPO REAL CON VALIDACIÓN ---
+                StreamBuilder<QuerySnapshot>(
+                  stream: _groupService.getMyGroupsStream(),
+                  builder: (context, snapshot) {
+                    bool hasGroups =
+                        snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+                    var groups = hasGroups ? snapshot.data!.docs : [];
+
+                    // 🔥 PROTECCIÓN CONTRA PANTALLA ROJA:
+                    // Si el código guardado no existe en los grupos actuales, lo reseteamos a null
+                    if (selectedGroupCode != null && hasGroups) {
+                      bool exists = groups.any(
+                        (g) =>
+                            (g.data() as Map<String, dynamic>)['code'] ==
+                            selectedGroupCode,
+                      );
+                      if (!exists) {
+                        selectedGroupCode = null;
+                      }
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: hasGroups
+                              ? const Color(0xFFC1FFFE).withOpacity(0.2)
+                              : Colors.orangeAccent.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          if (!hasGroups)
+                            const Text(
+                              "⚠️ Únete a un grupo primero para compartir con tus amigos.",
+                              style: TextStyle(
+                                color: Colors.orangeAccent,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                            )
+                          else
+                            DropdownButton<String>(
+                              value: selectedGroupCode,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              dropdownColor: const Color(0xFF1A1A1A),
+                              hint: const Text(
+                                "SELECCIONAR GRUPO",
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              items: groups.map((g) {
+                                final data = g.data() as Map<String, dynamic>;
+                                return DropdownMenuItem(
+                                  value: data['code'].toString(),
+                                  child: Text(
+                                    data['name'].toString().toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontFamily: 'Lexend',
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) =>
+                                  setModalState(() => selectedGroupCode = val),
+                            ),
+
+                          const Divider(color: Colors.white10),
+
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text(
+                              "COMPARTIR CON EL GRUPO",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontFamily: 'Lexend',
+                              ),
+                            ),
+                            value: isPublished,
+                            activeColor: const Color(0xFFBC87FE),
+                            onChanged: (hasGroups && selectedGroupCode != null)
+                                ? (val) =>
+                                      setModalState(() => isPublished = val)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -114,7 +213,7 @@ class CameraViewerState extends State<CameraViewer> {
                     artistController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("¡Ponle nombre a tu obra y al artista! 🦆"),
+                      content: Text("¡Ponle nombre a tu obra! 🦆"),
                     ),
                   );
                   return;
@@ -131,21 +230,23 @@ class CameraViewerState extends State<CameraViewer> {
                 try {
                   await projectService.saveProject(
                     QuackProject(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      id: isEditing
+                          ? widget.projectToLoad!.id
+                          : DateTime.now().millisecondsSinceEpoch.toString(),
                       name: nameController.text,
                       artistName: artistController.text,
                       photoPaths: widget.capturedPhotos
                           .map((f) => f.path)
-                          .toList(), // 👈 widget.
+                          .toList(),
                       date: DateTime.now(),
                       isPublished: isPublished,
-                      workshopCode: "TALLER_TEST",
+                      workshopCode: selectedGroupCode,
                     ),
                   );
                   if (context.mounted) {
-                    Navigator.pop(context); // Quitar loading
-                    Navigator.pop(context); // Quitar modal
-                    Navigator.pop(context); // Volver a la Home
+                    Navigator.pop(context); // Cierra loading
+                    Navigator.pop(context); // Cierra modal
+                    Navigator.pop(context); // Vuelve al Home
                   }
                 } catch (e) {
                   Navigator.pop(context);
@@ -171,15 +272,25 @@ class CameraViewerState extends State<CameraViewer> {
   Widget _buildTextField(
     TextEditingController controller,
     String label,
-    IconData icon,
-  ) {
+    IconData icon, {
+    bool readOnly = false,
+  }) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white, fontFamily: 'Lexend'),
+      readOnly: readOnly,
+      style: TextStyle(
+        color: readOnly ? Colors.white38 : Colors.white,
+        fontFamily: 'Lexend',
+        fontSize: 14,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-        prefixIcon: Icon(icon, color: const Color(0xFFBC87FE), size: 18),
+        labelStyle: const TextStyle(color: Colors.white38, fontSize: 10),
+        prefixIcon: Icon(
+          icon,
+          color: readOnly ? Colors.white12 : const Color(0xFFBC87FE),
+          size: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Colors.white10),
@@ -188,6 +299,8 @@ class CameraViewerState extends State<CameraViewer> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Color(0xFFBC87FE)),
         ),
+        filled: readOnly,
+        fillColor: readOnly ? Colors.black12 : Colors.transparent,
       ),
     );
   }
@@ -196,10 +309,10 @@ class CameraViewerState extends State<CameraViewer> {
   Widget build(BuildContext context) {
     return Center(
       child: AspectRatio(
-        aspectRatio: widget.controller.value.aspectRatio, // 👈 widget.
+        aspectRatio: widget.controller.value.aspectRatio,
         child: Stack(
           children: [
-            CameraPreview(widget.controller), // 👈 widget.
+            CameraPreview(widget.controller),
             if (widget.showGrid && !widget.isPlaying)
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
             if (widget.lastCapturedPhoto != null &&
@@ -239,7 +352,6 @@ class CameraViewerState extends State<CameraViewer> {
   }
 }
 
-// GridPainter se mantiene igual fuera de la clase
 class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

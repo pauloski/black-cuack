@@ -13,24 +13,22 @@ class ProjectService {
 
   String get _userId => _auth.currentUser?.uid ?? '';
 
-  // 1. GUARDAR PROYECTO (AHORA CON IDENTIDAD Y PRIVACIDAD)
+  // 1. GUARDAR PROYECTO
   Future<void> saveProject(QuackProject project) async {
     if (_userId.isEmpty) return;
 
     try {
-      print(
-        "🦆 Iniciando subida paralela de ${project.photoPaths.length} fotos...",
-      );
+      print("🦆 Iniciando subida de fotos a la nube...");
 
       final List<Future<String>> uploadTasks = [];
       for (int i = 0; i < project.photoPaths.length; i++) {
-        String path = project.photoPaths[i];
-        uploadTasks.add(_processAndUploadImage(path, project.id, i));
+        uploadTasks.add(
+          _processAndUploadImage(project.photoPaths[i], project.id, i),
+        );
       }
 
       List<String> cloudUrls = await Future.wait(uploadTasks);
 
-      // Guardamos con los nuevos campos del modelo
       await _db
           .collection('users')
           .doc(_userId)
@@ -39,11 +37,11 @@ class ProjectService {
           .set({
             'id': project.id,
             'name': project.name,
-            'artistName': project.artistName, // ✅ Identidad
+            'artistName': project.artistName,
             'date': project.date.toIso8601String(),
             'photoPaths': cloudUrls,
-            'isPublished': project.isPublished, // ✅ Privacidad
-            'workshopCode': project.workshopCode, // ✅ Grupo
+            'isPublished': project.isPublished,
+            'workshopCode': project.workshopCode,
             'userId': _userId,
             'lastModified': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
@@ -55,7 +53,88 @@ class ProjectService {
     }
   }
 
-  // Función auxiliar de procesamiento (Sin cambios, funciona perfecto)
+  // 2. LEER PROYECTOS PERSONALES
+  Stream<List<QuackProject>> getProjectsStream() {
+    if (_userId.isEmpty) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(_userId)
+        .collection('projects')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => QuackProject.fromJson(doc.data()))
+              .toList();
+        });
+  }
+
+  // 3. LEER LA GALERÍA DEL GRUPO (Crucial para la prueba entre cuentas)
+  Stream<List<QuackProject>> getWorkshopProjects(String workshopCode) {
+    if (workshopCode.isEmpty) return Stream.value([]);
+
+    // 🦆 Quitamos los '.where' de Firebase para evitar errores de índice
+    return _db.collectionGroup('projects').snapshots().map((snapshot) {
+      // 🛠️ Filtramos manualmente en la App
+      final projects = snapshot.docs
+          .map((doc) => QuackProject.fromJson(doc.data()))
+          .where((p) {
+            // Solo proyectos que coincidan con el código y que estén publicados
+            return p.workshopCode == workshopCode && p.isPublished == true;
+          })
+          .toList();
+
+      // Orden manual: del más nuevo al más viejo
+      projects.sort((a, b) => b.date.compareTo(a.date));
+
+      print(
+        "🦆 Galería Grupal: Cargados ${projects.length} proyectos para el código $workshopCode",
+      );
+      return projects;
+    });
+  }
+
+  // 4. BORRAR PROYECTO (Requerido por tu ProjectGridView)
+  Future<void> deleteProject(String projectId) async {
+    if (_userId.isEmpty) return;
+    try {
+      await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('projects')
+          .doc(projectId)
+          .delete();
+      print("🦆 Proyecto eliminado de Firestore");
+    } catch (e) {
+      print("Error al borrar: $e");
+    }
+  }
+
+  // 5. BORRAR CUENTA (Requerido por tu ProfilePage)
+  Future<void> deleteUserAccount() async {
+    if (_userId.isEmpty) return;
+    try {
+      // Borrar proyectos
+      final projects = await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('projects')
+          .get();
+      for (var doc in projects.docs) {
+        await doc.reference.delete();
+      }
+      // Borrar usuario en DB y Auth
+      await _db.collection('users').doc(_userId).delete();
+      await _auth.currentUser?.delete();
+      print("🦆 Cuenta eliminada para siempre");
+    } catch (e) {
+      print("Error al eliminar cuenta: $e");
+      rethrow;
+    }
+  }
+
+  // Función auxiliar de subida de fotos
   Future<String> _processAndUploadImage(
     String path,
     String projectId,
@@ -78,78 +157,5 @@ class ProjectService {
       await ref.putFile(File(path));
     }
     return await ref.getDownloadURL();
-  }
-
-  // 2. LEER PROYECTOS PERSONALES (MIS QUACKS)
-  Stream<List<QuackProject>> getProjectsStream() {
-    if (_userId.isEmpty) return Stream.value([]);
-
-    return _db
-        .collection('users')
-        .doc(_userId)
-        .collection('projects')
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => QuackProject.fromJson(doc.data()))
-              .toList();
-        });
-  }
-
-  // 3. LEER LA CHARCA (FILTRADO POR CÓDIGO Y PUBLICACIÓN)
-  // ✅ Crucial para el taller: Solo muestra lo que el autor decidió compartir
-  Stream<List<QuackProject>> getWorkshopProjects(String workshopCode) {
-    return _db
-        .collectionGroup('projects')
-        .where('workshopCode', isEqualTo: workshopCode) // ✅ Solo este taller
-        .where('isPublished', isEqualTo: true) // ✅ Solo lo publicado
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => QuackProject.fromJson(doc.data()))
-              .toList();
-        });
-  }
-
-  // 4. BORRAR PROYECTO Y DATOS (REQUISITO GOOGLE PLAY)
-  Future<void> deleteProject(String projectId) async {
-    if (_userId.isEmpty) return;
-    try {
-      await _db
-          .collection('users')
-          .doc(_userId)
-          .collection('projects')
-          .doc(projectId)
-          .delete();
-      print("🦆 Proyecto eliminado");
-    } catch (e) {
-      print("Error al borrar: $e");
-    }
-  }
-
-  // 5. BORRAR CUENTA COMPLETA (OBLIGATORIO GOOGLE PLAY)
-  Future<void> deleteUserAccount() async {
-    if (_userId.isEmpty) return;
-    try {
-      // 1. Borrar documentos de Firestore
-      final projects = await _db
-          .collection('users')
-          .doc(_userId)
-          .collection('projects')
-          .get();
-      for (var doc in projects.docs) {
-        await doc.reference.delete();
-      }
-      await _db.collection('users').doc(_userId).delete();
-
-      // 2. Borrar del sistema de Auth
-      await _auth.currentUser?.delete();
-      print("🦆 Cuenta eliminada para siempre");
-    } catch (e) {
-      print("Error al eliminar cuenta: $e");
-      rethrow;
-    }
   }
 }

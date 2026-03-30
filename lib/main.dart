@@ -3,11 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 // --- IMPORTACIONES DE PÁGINAS ---
-// ✅ Nueva importación del Splash
 import 'package:blackcuack_studio/src/features/auth/presentation/splash_page.dart';
 import 'package:blackcuack_studio/src/features/auth/presentation/login_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/profile_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
+// ✅ NUEVA IMPORTACIÓN
+import 'package:blackcuack_studio/src/features/gallery/presentation/pages/my_groups_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,15 +53,14 @@ class BlackCuackApp extends StatelessWidget {
         ),
       ),
 
-      // ✅ CAMBIO CLAVE: La app ahora arranca en el Splash
       home: const SplashPage(),
 
-      // ✅ RUTAS ACTUALIZADAS
       routes: {
         '/splash': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
         '/profile': (context) => const ProfilePage(),
+        '/my_groups': (context) => const MyGroupsPage(), // ✅ RUTA REGISTRADA
       },
     );
   }

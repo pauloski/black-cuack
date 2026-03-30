@@ -48,6 +48,7 @@ class _CameraPageState extends State<CameraPage> {
     super.initState();
     _initCamera();
     if (isEditing) {
+      // Cargamos las fotos existentes del proyecto
       capturedPhotos = widget.projectToLoad!.photoPaths
           .map((path) => XFile(path))
           .toList();
@@ -106,7 +107,6 @@ class _CameraPageState extends State<CameraPage> {
   // --- EXPORTACIÓN ---
   Future<void> _exportVideo() async {
     if (capturedPhotos.isEmpty) return;
-    // ... (Tu lógica de exportación se mantiene igual)
   }
 
   // --- CONFIGURACIÓN ---
@@ -207,7 +207,7 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  // ✅ NUEVO DISPARADOR DEL MODAL CURADO
+  // ✅ DISPARADOR DEL MODAL
   void _handleSaveAction() {
     if (capturedPhotos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -217,7 +217,6 @@ class _CameraPageState extends State<CameraPage> {
       );
       return;
     }
-    // 🔥 ESTE ES EL CABLEADO: Llamamos a la función que insertamos en el CameraViewer
     _cameraViewerKey.currentState?.showSaveDialog(context);
   }
 
@@ -234,7 +233,7 @@ class _CameraPageState extends State<CameraPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // ✅ AGREGAMOS LA KEY AL VIEWER
+          // ✅ AQUÍ ESTÁ EL ARREGLO: Pasamos 'projectToLoad' al viewer
           CameraViewer(
             key: _cameraViewerKey,
             controller: controller!,
@@ -244,6 +243,8 @@ class _CameraPageState extends State<CameraPage> {
             onionOpacity: onionOpacity,
             selectedIndex: selectedIndex,
             capturedPhotos: capturedPhotos,
+            projectToLoad:
+                widget.projectToLoad, // 👈 ¡ESTA ERA LA PIEZA FALTRANTE!
           ),
 
           if (!isPlaying)
@@ -267,7 +268,7 @@ class _CameraPageState extends State<CameraPage> {
                             setState(() => showGrid = !showGrid),
                         onShowSettings: _showSettings,
                         onExport: _exportVideo,
-                        onSave: _handleSaveAction, // ✅ CABLE CONECTADO
+                        onSave: _handleSaveAction,
                         onTakePhoto: _takePhoto,
                         onPlay: _playSequence,
                         onUndo: () {
