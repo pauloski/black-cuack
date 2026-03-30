@@ -12,6 +12,8 @@ import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/core/persistence/project_storage.dart';
 import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
+// ✅ Importa tus utils para generar el código
+import 'package:blackcuack_studio/src/core/utils/group_utils.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,6 +25,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final AuthService _authService = AuthService();
   late final ProjectService _projectService;
+  // Controlador para el input del código
+  final TextEditingController _groupCodeController = TextEditingController();
+
+  // 💡 TODO: Esto vendrá de un Stream de Firebase más adelante
+  bool hasGroups = false;
 
   @override
   void initState() {
@@ -30,7 +37,196 @@ class _HomePageState extends State<HomePage> {
     _projectService = ProjectService();
   }
 
-  // ... (Mantenemos tu función _confirmDelete igual)
+  @override
+  void dispose() {
+    _groupCodeController.dispose();
+    super.dispose();
+  }
+
+  // --- MODAL DE GESTIÓN DE GRUPOS (VERSION CORREGIDA) ---
+  void _showGroupManagement(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          left: 25,
+          right: 25,
+          top: 15,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "MI CHARCA",
+              style: TextStyle(
+                fontFamily: 'LuckiestGuy',
+                fontSize: 24,
+                color: Color(0xFFC1FFFE),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // ✅ AYUDA CONTEXTUAL
+            if (!hasGroups)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  "Aun no te has unido ni creado ningún grupo",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 12,
+                    fontFamily: 'Lexend',
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 25),
+
+            // SECCIÓN: UNIRSE
+            _buildGroupActionCard(
+              title: "UNIRSE A UN GRUPO",
+              icon: Icons.group_add_rounded,
+              color: const Color(0xFFBC87FE),
+              child: TextField(
+                controller: _groupCodeController,
+                textCapitalization: TextCapitalization.characters,
+                maxLength: 5,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                ),
+                decoration: InputDecoration(
+                  hintText: "CÓDIGO EJ: BQC2X",
+                  hintStyle: const TextStyle(
+                    color: Colors.white12,
+                    letterSpacing: 1,
+                    fontSize: 12,
+                  ),
+                  filled: true,
+                  fillColor: Colors.black26,
+                  counterText: "",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Color(0xFFBC87FE),
+                    ),
+                    onPressed: () {
+                      print(
+                        "Uniendo al grupo: ${_groupCodeController.text.toUpperCase()}",
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+            const Text(
+              "O",
+              style: TextStyle(
+                color: Colors.white10,
+                fontFamily: 'LuckiestGuy',
+              ),
+            ),
+            const SizedBox(height: 15),
+
+            // SECCIÓN: CREAR
+            _buildGroupActionCard(
+              title: "CREAR NUEVO GRUPO",
+              icon: Icons.add_box_rounded,
+              color: const Color(0xFFC1FFFE),
+              child: QuackButton(
+                text: "GENERAR CÓDIGO",
+                onPressed: () {
+                  final newCode = GroupUtils.generateGroupCode();
+                  print("Nuevo grupo creado con código: $newCode");
+                },
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ✅ BOTÓN SECUNDARIO
+            TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WorkshopGalleryPage()),
+              ),
+              icon: const Icon(
+                Icons.auto_awesome_motion_rounded,
+                size: 16,
+                color: Colors.white24,
+              ),
+              label: const Text(
+                "VER GALERÍA DE GRUPOS",
+                style: TextStyle(color: Colors.white24, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupActionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Lexend',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          child,
+        ],
+      ),
+    );
+  }
+
   void _confirmDelete(BuildContext context, QuackProject project) {
     showDialog(
       context: context,
@@ -46,7 +242,7 @@ class _HomePageState extends State<HomePage> {
           textAlign: TextAlign.center,
         ),
         content: Text(
-          "¿Estás seguro de que quieres eliminar '${project.name}'?\nEsta acción no se puede deshacer.",
+          "¿Estás seguro de que quieres eliminar '${project.name}'?",
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white70,
@@ -104,20 +300,15 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         actions: [
-          // 🦆 BOTÓN DE CHARCA (GRUPO)
           IconButton(
             icon: const Icon(
               Icons.groups_rounded,
               color: Color(0xFFC1FFFE),
               size: 28,
             ),
-            tooltip: 'Ver Charca Grupal',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => WorkshopGalleryPage()),
-            ),
+            tooltip: 'Mis Grupos',
+            onPressed: () => _showGroupManagement(context),
           ),
-          // 👤 BOTÓN DE PERFIL (RUTA NOMBRADA)
           IconButton(
             icon: const Icon(
               Icons.account_circle_rounded,
@@ -125,10 +316,7 @@ class _HomePageState extends State<HomePage> {
               size: 28,
             ),
             tooltip: 'Mi Perfil',
-            onPressed: () => Navigator.pushNamed(
-              context,
-              '/profile',
-            ), // ✅ Usa la ruta del main.dart
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
           const SizedBox(width: 10),
         ],
@@ -139,7 +327,6 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            // 🔥 Un saludo dinámico se vería genial aquí más adelante
             const Text(
               '¡Hola, Artista!',
               style: TextStyle(
@@ -149,7 +336,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
-
             QuackButton(
               text: '+ NUEVO PROYECTO',
               onPressed: () async {
@@ -159,13 +345,9 @@ class _HomePageState extends State<HomePage> {
                 if (mounted) setState(() {});
               },
             ),
-
             const SizedBox(height: 35),
-
-            // ... (Mantenemos el resto del StreamBuilder y GridView igual como lo tienes)
             _buildSectionHeader(context),
             const SizedBox(height: 10),
-
             Expanded(child: _buildProjectGrid()),
           ],
         ),
@@ -173,13 +355,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // He extraído esto para limpiar el build principal
   Widget _buildSectionHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
-          'RECIENTES',
+          'MIS PROYECTOS',
           style: TextStyle(
             fontFamily: 'Lexend',
             fontWeight: FontWeight.bold,
@@ -189,17 +370,14 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         TextButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => WorkshopGalleryPage()),
-          ),
+          onPressed: () => _showGroupManagement(context),
           icon: const Icon(
-            Icons.arrow_forward,
+            Icons.hub_rounded,
             size: 14,
             color: Color(0xFFC1FFFE),
           ),
           label: const Text(
-            "VER TALLER",
+            "MIS GRUPOS",
             style: TextStyle(
               color: Color(0xFFC1FFFE),
               fontSize: 11,
@@ -232,7 +410,6 @@ class _HomePageState extends State<HomePage> {
             ),
           );
         }
-
         return GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -246,7 +423,6 @@ class _HomePageState extends State<HomePage> {
             final String? previewUrl = p.photoPaths.isNotEmpty
                 ? p.photoPaths[0]
                 : null;
-
             return GestureDetector(
               onTap: () => Navigator.push(
                 context,
