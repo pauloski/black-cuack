@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-// Importamos las opciones generadas por FlutterFire
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
 
-// Importa tu página de login
+// --- IMPORTACIONES DE PÁGINAS ---
+// ✅ Nueva importación del Splash
+import 'package:blackcuack_studio/src/features/auth/presentation/splash_page.dart';
 import 'package:blackcuack_studio/src/features/auth/presentation/login_page.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/pages/profile_page.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
 
 void main() async {
-  // 1. Asegura que los bindings de Flutter estén listos para procesos async
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Inicializa Firebase usando el archivo que ya tienes en tu carpeta lib
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -19,7 +20,7 @@ void main() async {
   } catch (e) {
     print("⚠️ Error al inicializar Firebase: $e");
   }
-  
+
   runApp(const BlackCuackApp());
 }
 
@@ -31,34 +32,36 @@ class BlackCuackApp extends StatelessWidget {
     return MaterialApp(
       title: 'Blackcuack Studio',
       debugShowCheckedModeBanner: false,
-      
-      // Aplicamos tu Design System: The Kinetic Canvas
+
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0E0E0E), // Fondo Materia Oscura
+        scaffoldBackgroundColor: const Color(0xFF0E0E0E),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFC1FFFE),   // Cian Neón
-          secondary: Color(0xFFBC87FE), // Púrpura Vibrante
-          tertiary: Color(0xFFF3FFCA),  // Verde Lima (IA)
-          surface: Color(0xFF1A1A1A),   // Paneles
+          primary: Color(0xFFC1FFFE),
+          secondary: Color(0xFFBC87FE),
+          tertiary: Color(0xFFF3FFCA),
+          surface: Color(0xFF1A1A1A),
         ),
-        
-        // Configuración de textos y fuentes de marca
         textTheme: const TextTheme(
           displayLarge: TextStyle(
-            color: Color(0xFFC1FFFE), 
-            fontWeight: FontWeight.bold, 
-            fontFamily: 'LuckiestGuy'
+            color: Color(0xFFC1FFFE),
+            fontWeight: FontWeight.bold,
+            fontFamily: 'LuckiestGuy',
           ),
-          bodyMedium: TextStyle(
-            color: Color(0xFFADAAAA), 
-            fontFamily: 'Lexend'
-          ),
+          bodyMedium: TextStyle(color: Color(0xFFADAAAA), fontFamily: 'Lexend'),
         ),
       ),
-      
-      // La puerta de entrada es tu página de Login
-      home: const LoginPage(),
+
+      // ✅ CAMBIO CLAVE: La app ahora arranca en el Splash
+      home: const SplashPage(),
+
+      // ✅ RUTAS ACTUALIZADAS
+      routes: {
+        '/splash': (context) => const SplashPage(),
+        '/login': (context) => const LoginPage(),
+        '/home': (context) => const HomePage(),
+        '/profile': (context) => const ProfilePage(),
+      },
     );
   }
 }

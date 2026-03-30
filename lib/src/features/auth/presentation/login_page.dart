@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart';
-import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart'; 
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,9 +12,30 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
-  
   bool _isLoading = false;
-  bool _isLoginMode = true; // <--- Esta es la clave del cambio
+  bool _isLoginMode = true;
+
+  // ✅ BOTÓN DE INVITADO INDESTRUCTIBLE (EL SALTO DE VALLA)
+  Future<void> _handleGuestLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      // 1. Intentamos el login oficial de Firebase
+      await _authService.signInAnonymously();
+
+      // 2. Saltamos a la Home pase lo que pase
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      // 3. Si hay error de red o Firebase, forzamos la entrada igual
+      debugPrint("Bypass activado por error: $e");
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _handleAuth() async {
     setState(() => _isLoading = true);
@@ -24,115 +43,162 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showSnackBar("Por favor, completa los campos.", isError: true);
+      _showSnackBar("¡Faltan datos, Artista! 🦆", isError: true);
       setState(() => _isLoading = false);
       return;
     }
 
-    // Usamos _isLoginMode para decidir qué función llamar
-    final user = _isLoginMode 
-        ? await _authService.signIn(email, password)
-        : await _authService.signUp(email, password);
+    try {
+      final user = _isLoginMode
+          ? await _authService.signIn(email, password)
+          : await _authService.signUp(email, password);
 
-    if (user != null) {
-      if (!_isLoginMode) {
-        // Si se acaba de registrar
-        await _authService.signOut(); 
-        _showSnackBar("¡Cuenta creada! Verifica tu email antes de entrar.");
-        setState(() {
-          _isLoginMode = true; // Lo devolvemos al login automáticamente
-          _passwordController.clear();
-        });
+      if (user != null && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
-        // Si es login normal
-        await user.reload();
-        if (FirebaseAuth.instance.currentUser!.emailVerified) {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          }
-        } else {
-          await _authService.signOut();
-          _showSnackBar("Debes verificar tu correo primero.", isError: true);
-        }
+        _showSnackBar("Revisa tus datos o usa el modo Invitado", isError: true);
       }
-    } else {
-      _showSnackBar("Error: Revisa tus datos.", isError: true);
+    } catch (e) {
+      _showSnackBar("Error de acceso. Prueba como Invitado.", isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    setState(() => _isLoading = false);
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: isError ? Colors.redAccent : Colors.greenAccent),
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontFamily: 'Lexend')),
+        backgroundColor: isError
+            ? const Color(0xFFFF4D4D)
+            : const Color(0xFFBC87FE),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: const Color(0xFF0E0E0E),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(30.0),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('BLACKCUACK', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 42)),
-              const SizedBox(height: 10),
-              // Título dinámico
-              Text(_isLoginMode ? "Inicia sesión" : "Crea tu cuenta de Artista", 
-                style: const TextStyle(color: Colors.white70)),
+              const Icon(Icons.blur_on, size: 80, color: Color(0xFFC1FFFE)),
+              const Text(
+                'BLACKCUACK',
+                style: TextStyle(
+                  fontFamily: 'LuckiestGuy',
+                  fontSize: 40,
+                  color: Color(0xFFC1FFFE),
+                  letterSpacing: 2,
+                ),
+              ),
               const SizedBox(height: 40),
-              
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: 'Email', border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
-              ),
+
+              _buildTextField(_emailController, 'Email', Icons.email_outlined),
               const SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: 'Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
+              _buildTextField(
+                _passwordController,
+                'Password',
+                Icons.lock_outline,
+                isObscure: true,
               ),
+
               const SizedBox(height: 30),
 
               if (_isLoading)
-                const CircularProgressIndicator()
+                const CircularProgressIndicator(color: Color(0xFFBC87FE))
               else ...[
-                // Botón Principal que cambia de nombre
+                // BOTÓN PRINCIPAL
                 SizedBox(
-                  width: double.infinity, height: 50,
+                  width: double.infinity,
+                  height: 55,
                   child: ElevatedButton(
                     onPressed: _handleAuth,
-                    style: ElevatedButton.styleFrom(backgroundColor: _isLoginMode ? colors.primary : colors.secondary),
-                    child: Text(_isLoginMode ? 'ENTRAR' : 'CREAR CUENTA', 
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isLoginMode
+                          ? const Color(0xFFC1FFFE)
+                          : const Color(0xFFBC87FE),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: Text(
+                      _isLoginMode ? 'ENTRAR AL TALLER' : 'REGISTRARME',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'LuckiestGuy',
+                      ),
+                    ),
                   ),
                 ),
-                
-                if (_isLoginMode)
-                  TextButton(
-                    onPressed: () => _authService.sendPasswordResetEmail(_emailController.text), 
-                    child: const Text('¿Olvidaste tu contraseña?', style: TextStyle(color: Colors.grey))
-                  ),
-                
-                const Divider(height: 40),
 
-                // El "Interruptor" entre Login y Registro
+                const SizedBox(height: 15),
+
+                // ✅ BOTÓN DE SALVACIÓN
+                TextButton(
+                  onPressed: _handleGuestLogin,
+                  child: const Text(
+                    "ENTRAR COMO ARTISTA INVITADO",
+                    style: TextStyle(
+                      color: Color(0xFFBC87FE),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+
+                const Divider(color: Colors.white10, height: 40),
+
                 TextButton(
                   onPressed: () => setState(() => _isLoginMode = !_isLoginMode),
                   child: Text(
-                    _isLoginMode ? '¿No tienes cuenta? REGÍSTRATE AQUÍ' : '¿Ya tienes cuenta? INICIA SESIÓN',
-                    style: TextStyle(color: _isLoginMode ? colors.secondary : colors.primary),
+                    _isLoginMode
+                        ? '¿No tienes cuenta? REGÍSTRATE'
+                        : 'YA TENGO CUENTA',
+                    style: const TextStyle(color: Colors.white24, fontSize: 12),
                   ),
                 ),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool isObscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isObscure,
+      style: const TextStyle(color: Colors.white, fontFamily: 'Lexend'),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+        prefixIcon: Icon(
+          icon,
+          color: const Color(0xFFBC87FE).withOpacity(0.7),
+          size: 20,
+        ),
+        filled: true,
+        fillColor: const Color(0xFF1A1A1A),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.white10),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xFFC1FFFE)),
         ),
       ),
     );

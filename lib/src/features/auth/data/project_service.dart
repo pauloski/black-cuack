@@ -13,7 +13,7 @@ class ProjectService {
 
   String get _userId => _auth.currentUser?.uid ?? '';
 
-  // 1. GUARDAR PROYECTO (OPTIMIZADO CON SUBIDA PARALELA)
+  // 1. GUARDAR PROYECTO (AHORA CON IDENTIDAD Y PRIVACIDAD)
   Future<void> saveProject(QuackProject project) async {
     if (_userId.isEmpty) return;
 
@@ -23,7 +23,6 @@ class ProjectService {
       );
 
       final List<Future<String>> uploadTasks = [];
-
       for (int i = 0; i < project.photoPaths.length; i++) {
         String path = project.photoPaths[i];
         uploadTasks.add(_processAndUploadImage(path, project.id, i));
@@ -31,6 +30,7 @@ class ProjectService {
 
       List<String> cloudUrls = await Future.wait(uploadTasks);
 
+      // Guardamos con los nuevos campos del modelo
       await _db
           .collection('users')
           .doc(_userId)
@@ -39,21 +39,23 @@ class ProjectService {
           .set({
             'id': project.id,
             'name': project.name,
+            'artistName': project.artistName, // ✅ Identidad
             'date': project.date.toIso8601String(),
             'photoPaths': cloudUrls,
+            'isPublished': project.isPublished, // ✅ Privacidad
+            'workshopCode': project.workshopCode, // ✅ Grupo
+            'userId': _userId,
             'lastModified': FieldValue.serverTimestamp(),
-            'userId':
-                _userId, // Añadimos esto para saber de quién es en la galería grupal
           }, SetOptions(merge: true));
 
-      print("🦆 ¡Todo guardado a la velocidad del rayo!");
+      print("🦆 ¡Proyecto '${project.name}' guardado correctamente!");
     } catch (e) {
       print("Error en saveProject: $e");
       rethrow;
     }
   }
 
-  // Función auxiliar para procesar imágenes
+  // Función auxiliar de procesamiento (Sin cambios, funciona perfecto)
   Future<String> _processAndUploadImage(
     String path,
     String projectId,
@@ -75,11 +77,10 @@ class ProjectService {
     } else {
       await ref.putFile(File(path));
     }
-
     return await ref.getDownloadURL();
   }
 
-  // 2. LEER PROYECTOS PERSONALES
+  // 2. LEER PROYECTOS PERSONALES (MIS QUACKS)
   Stream<List<QuackProject>> getProjectsStream() {
     if (_userId.isEmpty) return Stream.value([]);
 
@@ -90,48 +91,29 @@ class ProjectService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            return QuackProject(
-              id: data['id'],
-              name: data['name'],
-              date: DateTime.parse(data['date']),
-              photoPaths: List<String>.from(data['photoPaths'] ?? []),
-            );
-          }).toList();
+          return snapshot.docs
+              .map((doc) => QuackProject.fromJson(doc.data()))
+              .toList();
         });
   }
 
-  // 3. LEER TODOS LOS PROYECTOS DEL TALLER (GALERÍA GRUPAL)
-  // Esta función permite ver lo que todos están cocinando
-  Stream<List<QuackProject>> getAllWorkshopProjects() {
+  // 3. LEER LA CHARCA (FILTRADO POR CÓDIGO Y PUBLICACIÓN)
+  // ✅ Crucial para el taller: Solo muestra lo que el autor decidió compartir
+  Stream<List<QuackProject>> getWorkshopProjects(String workshopCode) {
     return _db
         .collectionGroup('projects')
+        .where('workshopCode', isEqualTo: workshopCode) // ✅ Solo este taller
+        .where('isPublished', isEqualTo: true) // ✅ Solo lo publicado
         .orderBy('date', descending: true)
         .snapshots()
-        .handleError((error) {
-          print(
-            "🦆 Error en la Charca: $error",
-          ); // Esto nos dirá qué pasa en la consola
-        })
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            return QuackProject(
-              id:
-                  data['id'] ??
-                  doc.id, // Si no tiene ID, usamos el del documento
-              name: data['name'] ?? 'Pato Sin Nombre',
-              date: data['date'] != null
-                  ? DateTime.parse(data['date'])
-                  : DateTime.now(),
-              photoPaths: List<String>.from(data['photoPaths'] ?? []),
-            );
-          }).toList();
+          return snapshot.docs
+              .map((doc) => QuackProject.fromJson(doc.data()))
+              .toList();
         });
   }
 
-  // 4. BORRAR PROYECTO
+  // 4. BORRAR PROYECTO Y DATOS (REQUISITO GOOGLE PLAY)
   Future<void> deleteProject(String projectId) async {
     if (_userId.isEmpty) return;
     try {
@@ -141,9 +123,33 @@ class ProjectService {
           .collection('projects')
           .doc(projectId)
           .delete();
-      print("🦆 Proyecto eliminado de Firestore");
+      print("🦆 Proyecto eliminado");
     } catch (e) {
       print("Error al borrar: $e");
+    }
+  }
+
+  // 5. BORRAR CUENTA COMPLETA (OBLIGATORIO GOOGLE PLAY)
+  Future<void> deleteUserAccount() async {
+    if (_userId.isEmpty) return;
+    try {
+      // 1. Borrar documentos de Firestore
+      final projects = await _db
+          .collection('users')
+          .doc(_userId)
+          .collection('projects')
+          .get();
+      for (var doc in projects.docs) {
+        await doc.reference.delete();
+      }
+      await _db.collection('users').doc(_userId).delete();
+
+      // 2. Borrar del sistema de Auth
+      await _auth.currentUser?.delete();
+      print("🦆 Cuenta eliminada para siempre");
+    } catch (e) {
+      print("Error al eliminar cuenta: $e");
+      rethrow;
     }
   }
 }
