@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart'; // Para debugPrint
 
 class ProjectService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -70,64 +71,82 @@ class ProjectService {
         });
   }
 
-  // 3. LEER LA GALERÍA DEL GRUPO (Crucial para la prueba entre cuentas)
+  // 3. LEER LA GALERÍA DEL GRUPO
   Stream<List<QuackProject>> getWorkshopProjects(String workshopCode) {
     if (workshopCode.isEmpty) return Stream.value([]);
 
-    // 🦆 Quitamos los '.where' de Firebase para evitar errores de índice
     return _db.collectionGroup('projects').snapshots().map((snapshot) {
-      // 🛠️ Filtramos manualmente en la App
       final projects = snapshot.docs
           .map((doc) => QuackProject.fromJson(doc.data()))
           .where((p) {
-            // Solo proyectos que coincidan con el código y que estén publicados
             return p.workshopCode == workshopCode && p.isPublished == true;
           })
           .toList();
 
-      // Orden manual: del más nuevo al más viejo
       projects.sort((a, b) => b.date.compareTo(a.date));
-
-      print(
-        "🦆 Galería Grupal: Cargados ${projects.length} proyectos para el código $workshopCode",
-      );
       return projects;
     });
   }
 
-  // 4. BORRAR PROYECTO (Requerido por tu ProjectGridView)
-  Future<void> deleteProject(String projectId) async {
+  // 4. 🧹 BORRADO TOTAL (Firestore + Storage)
+  // Ahora requiere las rutas de las fotos para poder borrarlas físicamente
+  Future<void> deleteProjectFull(
+    String projectId,
+    List<String> photoUrls,
+  ) async {
     if (_userId.isEmpty) return;
+
     try {
+      print("🧹 Iniciando limpieza profunda del proyecto: $projectId");
+
+      // A. Borrar archivos físicos en Storage
+      for (String url in photoUrls) {
+        try {
+          if (url.contains('firebasestorage')) {
+            // Solo intentar borrar si es link de Firebase
+            await _storage.refFromURL(url).delete();
+            debugPrint("🗑️ Foto borrada de Storage");
+          }
+        } catch (e) {
+          debugPrint(
+            "⚠️ No se pudo borrar foto en Storage (puede que no exista): $e",
+          );
+        }
+      }
+
+      // B. Borrar el documento en Firestore
       await _db
           .collection('users')
           .doc(_userId)
           .collection('projects')
           .doc(projectId)
           .delete();
-      print("🦆 Proyecto eliminado de Firestore");
+
+      print("🦆 Proyecto y fotos eliminados de la charca.");
     } catch (e) {
-      print("Error al borrar: $e");
+      print("Error al realizar borrado total: $e");
     }
   }
 
-  // 5. BORRAR CUENTA (Requerido por tu ProfilePage)
+  // 5. BORRAR CUENTA
   Future<void> deleteUserAccount() async {
     if (_userId.isEmpty) return;
     try {
-      // Borrar proyectos
       final projects = await _db
           .collection('users')
           .doc(_userId)
           .collection('projects')
           .get();
+
+      // Limpiamos Storage de cada proyecto antes de borrar la cuenta
       for (var doc in projects.docs) {
-        await doc.reference.delete();
+        final data = QuackProject.fromJson(doc.data());
+        await deleteProjectFull(data.id, data.photoPaths);
       }
-      // Borrar usuario en DB y Auth
+
       await _db.collection('users').doc(_userId).delete();
       await _auth.currentUser?.delete();
-      print("🦆 Cuenta eliminada para siempre");
+      print("🦆 Cuenta y Storage limpiados para siempre");
     } catch (e) {
       print("Error al eliminar cuenta: $e");
       rethrow;

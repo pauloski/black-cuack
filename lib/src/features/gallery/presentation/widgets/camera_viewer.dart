@@ -3,9 +3,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
+import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
 
 class CameraViewer extends StatefulWidget {
   final CameraController controller;
@@ -37,19 +37,13 @@ class CameraViewerState extends State<CameraViewer> {
   final GroupService _groupService = GroupService();
 
   void showSaveDialog(BuildContext context) {
-    // 🦆 DETECTAR SI ES EDICIÓN
     final bool isEditing = widget.projectToLoad != null;
-
-    final TextEditingController nameController = TextEditingController(
+    final nameController = TextEditingController(
       text: isEditing ? widget.projectToLoad!.name : "",
     );
-    final TextEditingController artistController = TextEditingController(
+    final artistController = TextEditingController(
       text: isEditing ? widget.projectToLoad!.artistName : "",
     );
-
-    final ProjectService projectService = ProjectService();
-
-    // Estado inicial del modal
     String? selectedGroupCode = isEditing
         ? widget.projectToLoad!.workshopCode
         : null;
@@ -57,20 +51,14 @@ class CameraViewerState extends State<CameraViewer> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFBC87FE), width: 1),
-          ),
           title: const Text(
             "🚀 FINALIZAR QUACK",
             style: TextStyle(
               fontFamily: 'LuckiestGuy',
               color: Color(0xFFC1FFFE),
-              fontSize: 20,
             ),
           ),
           content: SingleChildScrollView(
@@ -79,116 +67,32 @@ class CameraViewerState extends State<CameraViewer> {
               children: [
                 _buildTextField(
                   nameController,
-                  "TÍTULO DEL PROYECTO",
+                  "TÍTULO",
                   Icons.title,
                   readOnly: isEditing,
                 ),
                 const SizedBox(height: 15),
                 _buildTextField(
                   artistController,
-                  "NOMBRE DEL ARTISTA",
+                  "ARTISTA",
                   Icons.person,
                   readOnly: isEditing,
                 ),
                 const SizedBox(height: 20),
-
-                // --- SELECTOR DE GRUPOS EN TIEMPO REAL CON VALIDACIÓN ---
-                StreamBuilder<QuerySnapshot>(
-                  stream: _groupService.getMyGroupsStream(),
-                  builder: (context, snapshot) {
-                    bool hasGroups =
-                        snapshot.hasData && snapshot.data!.docs.isNotEmpty;
-                    var groups = hasGroups ? snapshot.data!.docs : [];
-
-                    // 🔥 PROTECCIÓN CONTRA PANTALLA ROJA:
-                    // Si el código guardado no existe en los grupos actuales, lo reseteamos a null
-                    if (selectedGroupCode != null && hasGroups) {
-                      bool exists = groups.any(
-                        (g) =>
-                            (g.data() as Map<String, dynamic>)['code'] ==
-                            selectedGroupCode,
-                      );
-                      if (!exists) {
-                        selectedGroupCode = null;
-                      }
-                    }
-
-                    return Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: hasGroups
-                              ? const Color(0xFFC1FFFE).withOpacity(0.2)
-                              : Colors.orangeAccent.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          if (!hasGroups)
-                            const Text(
-                              "⚠️ Únete a un grupo primero para compartir con tus amigos.",
-                              style: TextStyle(
-                                color: Colors.orangeAccent,
-                                fontSize: 10,
-                              ),
-                              textAlign: TextAlign.center,
-                            )
-                          else
-                            DropdownButton<String>(
-                              value: selectedGroupCode,
-                              isExpanded: true,
-                              underline: const SizedBox(),
-                              dropdownColor: const Color(0xFF1A1A1A),
-                              hint: const Text(
-                                "SELECCIONAR GRUPO",
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 11,
-                                ),
-                              ),
-                              items: groups.map((g) {
-                                final data = g.data() as Map<String, dynamic>;
-                                return DropdownMenuItem(
-                                  value: data['code'].toString(),
-                                  child: Text(
-                                    data['name'].toString().toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontFamily: 'Lexend',
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (val) =>
-                                  setModalState(() => selectedGroupCode = val),
-                            ),
-
-                          const Divider(color: Colors.white10),
-
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              "COMPARTIR CON EL GRUPO",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontFamily: 'Lexend',
-                              ),
-                            ),
-                            value: isPublished,
-                            activeColor: const Color(0xFFBC87FE),
-                            onChanged: (hasGroups && selectedGroupCode != null)
-                                ? (val) =>
-                                      setModalState(() => isPublished = val)
-                                : null,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                _buildGroupSelector(
+                  selectedGroupCode,
+                  (val) => setModalState(() => selectedGroupCode = val),
+                ),
+                const SizedBox(height: 10),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    "COMPARTIR EN GRUPO",
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  value: isPublished,
+                  activeColor: const Color(0xFFBC87FE),
+                  onChanged: (val) => setModalState(() => isPublished = val),
                 ),
               ],
             ),
@@ -196,76 +100,77 @@ class CameraViewerState extends State<CameraViewer> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "CANCELAR",
-                style: TextStyle(color: Colors.white38),
-              ),
+              child: const Text("CANCELAR"),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFBC87FE),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
               ),
-              onPressed: () async {
-                if (nameController.text.isEmpty ||
-                    artistController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("¡Ponle nombre a tu obra! 🦆"),
-                    ),
-                  );
-                  return;
-                }
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) return;
 
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFC1FFFE)),
+                Navigator.pop(context); // Cierra diálogo texto
+
+                QuackSaveHelper.saveAndExit(
+                  project: QuackProject(
+                    id: isEditing
+                        ? widget.projectToLoad!.id
+                        : DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: nameController.text.trim(),
+                    artistName: artistController.text.trim(),
+                    photoPaths: widget.capturedPhotos
+                        .map((f) => f.path)
+                        .toList(),
+                    date: DateTime.now(),
+                    isPublished: isPublished,
+                    workshopCode: selectedGroupCode,
                   ),
                 );
-
-                try {
-                  await projectService.saveProject(
-                    QuackProject(
-                      id: isEditing
-                          ? widget.projectToLoad!.id
-                          : DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: nameController.text,
-                      artistName: artistController.text,
-                      photoPaths: widget.capturedPhotos
-                          .map((f) => f.path)
-                          .toList(),
-                      date: DateTime.now(),
-                      isPublished: isPublished,
-                      workshopCode: selectedGroupCode,
-                    ),
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context); // Cierra loading
-                    Navigator.pop(context); // Cierra modal
-                    Navigator.pop(context); // Vuelve al Home
-                  }
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
-                }
               },
               child: const Text(
                 "GUARDAR",
-                style: TextStyle(
-                  fontFamily: 'LuckiestGuy',
-                  color: Colors.white,
-                ),
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGroupSelector(String? selected, Function(String?) onChange) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _groupService.getMyGroupsStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Text(
+            "No tienes grupos activos",
+            style: TextStyle(fontSize: 11, color: Colors.white24),
+          );
+        }
+
+        return DropdownButton<String>(
+          value: selected,
+          isExpanded: true,
+          hint: const Text("SELECCIONAR GRUPO", style: TextStyle(fontSize: 12)),
+          underline: Container(height: 1, color: Colors.white10),
+          dropdownColor: const Color(0xFF1A1A1A),
+          // ✅ CORRECCIÓN AQUÍ: Forzamos el mapeo a DropdownMenuItem<String>
+          items: snapshot.data!.docs.map<DropdownMenuItem<String>>((g) {
+            final data = g.data() as Map<String, dynamic>;
+            final String code = data['code']?.toString() ?? "";
+            final String name = data['name']?.toString() ?? "Sin nombre";
+            return DropdownMenuItem<String>(
+              value: code,
+              child: Text(
+                name.toUpperCase(),
+                style: const TextStyle(fontSize: 12),
+              ),
+            );
+          }).toList(),
+          onChanged: onChange,
+        );
+      },
     );
   }
 
@@ -278,29 +183,11 @@ class CameraViewerState extends State<CameraViewer> {
     return TextField(
       controller: controller,
       readOnly: readOnly,
-      style: TextStyle(
-        color: readOnly ? Colors.white38 : Colors.white,
-        fontFamily: 'Lexend',
-        fontSize: 14,
-      ),
+      style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 10),
-        prefixIcon: Icon(
-          icon,
-          color: readOnly ? Colors.white12 : const Color(0xFFBC87FE),
-          size: 18,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white10),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFBC87FE)),
-        ),
-        filled: readOnly,
-        fillColor: readOnly ? Colors.black12 : Colors.transparent,
+        prefixIcon: Icon(icon, size: 18, color: const Color(0xFFBC87FE)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -356,28 +243,20 @@ class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.5)
-      ..strokeWidth = 1.2;
-    canvas.drawLine(
-      Offset(size.width / 3, 0),
-      Offset(size.width / 3, size.height),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 2 / 3, 0),
-      Offset(size.width * 2 / 3, size.height),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height / 3),
-      Offset(size.width, size.height / 3),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 2 / 3),
-      Offset(size.width, size.height * 2 / 3),
-      paint,
-    );
+      ..color = Colors.white.withOpacity(0.3)
+      ..strokeWidth = 1.0;
+    for (var i = 1; i < 3; i++) {
+      canvas.drawLine(
+        Offset(size.width * i / 3, 0),
+        Offset(size.width * i / 3, size.height),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(0, size.height * i / 3),
+        Offset(size.width, size.height * i / 3),
+        paint,
+      );
+    }
   }
 
   @override

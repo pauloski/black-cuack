@@ -7,8 +7,11 @@ import 'package:blackcuack_studio/src/features/auth/presentation/splash_page.dar
 import 'package:blackcuack_studio/src/features/auth/presentation/login_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/profile_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
-// ✅ NUEVA IMPORTACIÓN
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/my_groups_page.dart';
+
+// ✅ LLAVE MAESTRA DE NAVEGACIÓN GLOBAL
+// Esta llave permite controlar el Navigator desde cualquier parte del código sin depender del "context"
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +34,9 @@ class BlackCuackApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // ✅ VINCULACIÓN DE LA LLAVE
+      navigatorKey: navigatorKey,
+
       title: 'Blackcuack Studio',
       debugShowCheckedModeBanner: false,
 
@@ -53,14 +59,15 @@ class BlackCuackApp extends StatelessWidget {
         ),
       ),
 
-      home: const SplashPage(),
+      // Definimos la ruta inicial explícitamente para mayor orden
+      initialRoute: '/splash',
 
       routes: {
         '/splash': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
         '/profile': (context) => const ProfilePage(),
-        '/my_groups': (context) => const MyGroupsPage(), // ✅ RUTA REGISTRADA
+        '/my_groups': (context) => const MyGroupsPage(),
       },
     );
   }

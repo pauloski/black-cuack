@@ -158,7 +158,7 @@ class _ProjectGridViewState extends State<ProjectGridView> {
           textAlign: TextAlign.center,
         ),
         content: Text(
-          "¿Estás seguro de que quieres eliminar '${project.name}'?",
+          "¿Estás seguro de que quieres eliminar '${project.name}'?\nEsta acción limpiará todas las fotos de la nube. 🧹",
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white70,
@@ -179,11 +179,27 @@ class _ProjectGridViewState extends State<ProjectGridView> {
               backgroundColor: const Color(0xFFFF4D4D),
             ),
             onPressed: () async {
-              await _projectService.deleteProject(project.id);
+              // 1. Mostramos un indicador de carga rápido para el borrado
+              debugPrint("🦆 Borrando fotos y datos...");
+
+              // 2. Llamamos al nuevo método con los DOS parámetros necesarios
+              await _projectService.deleteProjectFull(
+                project.id,
+                project
+                    .photoPaths, // ✅ Ahora pasamos la lista de fotos para limpiar Storage
+              );
+
+              // 3. Limpiamos cache local si existe
               await ProjectStorage.deleteProject(project.id);
+
               if (mounted) {
                 Navigator.pop(context);
-                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("¡Charca limpiada con éxito! 🧹🦆"),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
               }
             },
             child: const Text(

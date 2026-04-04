@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Cuack Studio - Visualizador</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        body { margin: 0; background: #0e0e0e; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #movie-container { width: 90vw; max-width: 600px; aspect-ratio: 4/3; background: #1a1a1a; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        #frame { width: 100%; height: 100%; object-fit: contain; }
+        .info { margin-top: 20px; text-align: center; }
+        h1 { font-size: 1.2rem; color: #c1fffe; margin: 0; }
+        p { font-size: 0.8rem; color: #666; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #bc87fe; }
+    </style>
+</head>
+<body>
+
+    <div id="movie-container">
+        <div id="loading">Cargando animación... 🦆</div>
+        <img id="frame" src="" style="display: none;">
+    </div>
+
+    <div class="info">
+        <h1 id="title">Black Cuack Studio</h1>
+        <p id="author">Cargando autor...</p>
+    </div>
+
+    <script>
+        // 1. CONFIGURACIÓN DE FIREBASE (Copia tus credenciales de tu proyecto aquí)
+
+        /*
+        🦆 ¿Cómo lo activas?
+        Credenciales: Copia las firebaseConfig que usas en tu App de Flutter al script de arriba.
+        Subida: Pon este archivo viewer.html dentro de tu carpeta web_privacy/ y haz git push.
+        Prueba: Entra a https://black-cuack-privacy.pages.dev/viewer?id=UN_ID_REAL_DE_FIRESTORE.
+        */
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO_ID",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "..."
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 2. OBTENER ID DE LA URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+
+        if (!projectId) {
+            document.getElementById('loading').innerText = "¡Falta el ID del proyecto! 🦆❌";
+        } else {
+            loadProject(projectId);
+        }
+
+        // 3. LÓGICA DEL REPRODUCTOR
+        async function loadProject(id) {
+            try {
+                const doc = await db.collection('projects').doc(id).get();
+                if (!doc.exists) {
+                    document.getElementById('loading').innerText = "Proyecto no encontrado 💨";
+                    return;
+                }
+
+                const data = doc.data();
+                const frames = data.imageUrls || [];
+                const fps = data.fps || 10;
+                
+                document.getElementById('title').innerText = data.name || "Sin título";
+                document.getElementById('author').innerText = `Animado por: ${data.authorEmail || 'Artista Quack'}`;
+
+                if (frames.length > 0) {
+                    startPlayback(frames, fps);
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loading').innerText = "Error al conectar con la Charca 🦆💥";
+            }
+        }
+
+        function startPlayback(images, fps) {
+            const imgElement = document.getElementById('frame');
+            const loadingElement = document.getElementById('loading');
+            let currentIndex = 0;
+
+            loadingElement.style.display = 'none';
+            imgElement.style.display = 'block';
+
+            setInterval(() => {
+                imgElement.src = images[currentIndex];
+                currentIndex = (currentIndex + 1) % images.length;
+            }, 1000 / fps);
+        }
+    </script>
+</body>
+</html>
