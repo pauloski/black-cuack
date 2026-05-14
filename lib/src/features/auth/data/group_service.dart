@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:blackcuack_studio/src/core/utils/group_utils.dart';
 
 class GroupService {
@@ -23,7 +24,7 @@ class GroupService {
       });
       return groupCode;
     } catch (e) {
-      print("Error al crear grupo: $e");
+      debugPrint("Error al crear grupo: $e");
       return null;
     }
   }
@@ -48,7 +49,7 @@ class GroupService {
 
       return true;
     } catch (e) {
-      print("Error al unirse al grupo: $e");
+      debugPrint("Error al unirse al grupo: $e");
       return false;
     }
   }
@@ -69,7 +70,7 @@ class GroupService {
     try {
       await _db.collection('groups').doc(groupId).update({'name': newName});
     } catch (e) {
-      print("Error al renombrar: $e");
+      debugPrint("Error al renombrar: $e");
     }
   }
 
@@ -78,7 +79,7 @@ class GroupService {
     try {
       await _db.collection('groups').doc(groupId).delete();
     } catch (e) {
-      print("Error al borrar grupo: $e");
+      debugPrint("Error al borrar grupo: $e");
     }
   }
 
@@ -92,7 +93,7 @@ class GroupService {
         'members': FieldValue.arrayRemove([user.uid]),
       });
     } catch (e) {
-      print("Error al salir del grupo: $e");
+      debugPrint("Error al salir del grupo: $e");
     }
   }
 }

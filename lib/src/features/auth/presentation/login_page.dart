@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart';
+import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart'; // AuthService + AuthException
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,19 +49,31 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      final user = _isLoginMode
-          ? await _authService.signIn(email, password)
-          : await _authService.signUp(email, password);
+      await (_isLoginMode
+          ? _authService.signIn(email, password)
+          : _authService.signUp(email, password));
 
-      if (user != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        _showSnackBar("Revisa tus datos o usa el modo Invitado", isError: true);
-      }
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showSnackBar(e.message, isError: true);
     } catch (e) {
-      _showSnackBar("Error de acceso. Prueba como Invitado.", isError: true);
+      _showSnackBar("Error inesperado. Prueba como Invitado.", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showSnackBar("Escribe tu email primero 🦆", isError: true);
+      return;
+    }
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      _showSnackBar("¡Correo enviado! Revisa tu bandeja 📬");
+    } catch (e) {
+      _showSnackBar("No encontramos ese email", isError: true);
     }
   }
 
@@ -108,7 +120,23 @@ class _LoginPageState extends State<LoginPage> {
                 isObscure: true,
               ),
 
-              const SizedBox(height: 30),
+              if (_isLoginMode)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _handleForgotPassword,
+                    child: const Text(
+                      "¿Olvidaste tu contraseña?",
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontFamily: 'Lexend',
+                      ),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 15),
 
               if (_isLoading)
                 const CircularProgressIndicator(color: Color(0xFFBC87FE))

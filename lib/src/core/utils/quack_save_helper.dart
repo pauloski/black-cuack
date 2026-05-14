@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/main.dart'; // Importante para navigatorKey
 import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
@@ -5,6 +6,18 @@ import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart
 
 class QuackSaveHelper {
   static final ProjectService _projectService = ProjectService();
+
+  static void _showToast(String message) {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontFamily: 'Lexend')),
+        backgroundColor: const Color(0xFFFF4D4D),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
 
   // 🦆 Diálogo de Carga (El Patito)
   static void showLoadingQuack() {
@@ -65,17 +78,16 @@ class QuackSaveHelper {
     showLoadingQuack();
 
     try {
-      // 2. Intentar guardar con un Timeout de 15 segundos (especial para Flutter Web)
       await _projectService
           .saveProject(project)
           .timeout(const Duration(seconds: 15));
-
       debugPrint("🦆 ¡Proyecto '${project.name}' guardado correctamente!");
+    } on TimeoutException {
+      debugPrint("⚠️ Timeout al guardar '${project.name}'");
+      _showToast("Sin conexión — el proyecto se guardó solo localmente 🦆");
     } catch (e) {
-      // Catch para capturar errores de credenciales o de protocolo QUIC de Chrome
-      debugPrint(
-        "🦆 Quack Debug: Error o Timeout detectado, forzando salida segura. $e",
-      );
+      debugPrint("⚠️ Error al guardar: $e");
+      _showToast("Error al publicar. Revisa tu conexión.");
     } finally {
       // 3. 🛡️ SALIDA ATÓMICA (Garantiza que la App no se quede colgada)
       if (navigatorKey.currentState != null) {

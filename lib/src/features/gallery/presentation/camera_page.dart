@@ -7,9 +7,6 @@ import 'package:share_plus/share_plus.dart';
 // Utilidades y Modelos
 import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
-import 'package:blackcuack_studio/src/core/persistence/project_storage.dart';
-import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
-
 // Widgets Refactorizados
 import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/camera_viewer.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/camera_controls.dart';
@@ -40,6 +37,9 @@ class _CameraPageState extends State<CameraPage> {
   bool isPlaying = false;
   int previewIndex = 0;
   int? selectedIndex;
+
+  bool _isExporting = false;
+  double _exportProgress = 0.0;
 
   bool get isEditing => widget.projectToLoad != null;
 
@@ -82,7 +82,7 @@ class _CameraPageState extends State<CameraPage> {
         selectedIndex = null;
       });
     } catch (e) {
-      print("Error captura: $e");
+      debugPrint("Error captura: $e");
     }
   }
 
@@ -107,6 +107,53 @@ class _CameraPageState extends State<CameraPage> {
   // --- EXPORTACIÓN ---
   Future<void> _exportVideo() async {
     if (capturedPhotos.isEmpty) return;
+
+    setState(() {
+      _isExporting = true;
+      _exportProgress = 0.0;
+    });
+
+    try {
+      final paths = capturedPhotos.map((f) => f.path).toList();
+      final result = await VideoCreator.export(
+        paths,
+        fps,
+        onProgress: (p) => setState(() => _exportProgress = p),
+      );
+
+      if (!mounted) return;
+
+      if (kIsWeb) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("¡GIF descargado! Revisa tu carpeta de descargas 🦆"),
+            backgroundColor: Color(0xFFBC87FE),
+          ),
+        );
+      } else if (result != null) {
+        await SharePlus.instance.share(
+          ShareParams(files: [XFile(result)], text: "¡Mi animación Blackcuack! 🦆"),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error al exportar. Intenta de nuevo."),
+            backgroundColor: Color(0xFFFF4D4D),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: const Color(0xFFFF4D4D),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
   // --- CONFIGURACIÓN ---
@@ -300,7 +347,50 @@ class _CameraPageState extends State<CameraPage> {
             ),
 
           if (isPlaying) _buildCinemaMode(),
+
+          if (_isExporting) _buildExportOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExportOverlay() {
+    return Container(
+      color: Colors.black87,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "🎬 EXPORTANDO...",
+              style: TextStyle(
+                color: Color(0xFFC1FFFE),
+                fontFamily: 'LuckiestGuy',
+                fontSize: 22,
+              ),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: 220,
+              child: LinearProgressIndicator(
+                value: _exportProgress,
+                color: const Color(0xFFBC87FE),
+                backgroundColor: Colors.white10,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "${(_exportProgress * 100).round()}%",
+              style: const TextStyle(
+                color: Colors.white54,
+                fontFamily: 'Lexend',
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

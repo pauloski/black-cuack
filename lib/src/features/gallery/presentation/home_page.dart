@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart'; // AppColors + QuackButton
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 // ✅ Importaciones corregidas de tus widgets separados
 import 'package:blackcuack_studio/src/features/gallery/presentation/widgets/project_grid_view.dart';
@@ -16,7 +16,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0E0E0E),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
           'MIS QUACKS',
           style: TextStyle(
             fontFamily: 'LuckiestGuy',
-            color: Color(0xFFC1FFFE),
+            color: AppColors.primary,
             fontSize: 22,
           ),
         ),
@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(
               Icons.groups_rounded,
-              color: Color(0xFFC1FFFE),
+              color: AppColors.primary,
               size: 28,
             ),
             tooltip: 'Mis Grupos',
@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(
               Icons.account_circle_rounded,
-              color: Color(0xFFBC87FE),
+              color: AppColors.secondary,
               size: 28,
             ),
             tooltip: 'Mi Perfil',
@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 fontFamily: 'Barriecito',
                 fontSize: 28,
-                color: Color(0xFFBC87FE),
+                color: AppColors.secondary,
               ),
             ),
             const SizedBox(height: 20),
@@ -104,12 +104,12 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(
             Icons.hub_rounded,
             size: 14,
-            color: Color(0xFFC1FFFE),
+            color: AppColors.primary,
           ),
           label: const Text(
             "MIS GRUPOS",
             style: TextStyle(
-              color: Color(0xFFC1FFFE),
+              color: AppColors.primary,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),

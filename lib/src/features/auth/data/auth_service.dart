@@ -1,79 +1,87 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+
+class AuthException implements Exception {
+  final String message;
+  const AuthException(this.message);
+}
+
+String _mapFirebaseError(dynamic e) {
+  if (e is FirebaseAuthException) {
+    switch (e.code) {
+      case 'user-not-found':     return 'No existe una cuenta con ese email.';
+      case 'wrong-password':     return 'Contraseña incorrecta.';
+      case 'invalid-credential': return 'Email o contraseña incorrectos.';
+      case 'email-already-in-use': return 'Ese email ya está registrado.';
+      case 'weak-password':      return 'La contraseña debe tener al menos 6 caracteres.';
+      case 'invalid-email':      return 'El formato del email no es válido.';
+      case 'too-many-requests':  return 'Demasiados intentos. Espera un momento.';
+      case 'network-request-failed': return 'Sin conexión. Verifica tu red.';
+    }
+  }
+  return 'Error inesperado. Intenta de nuevo.';
+}
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // 1. REGISTRAR USUARIO
-  Future<User?> signUp(String email, String password) async {
+  Future<User> signUp(String email, String password) async {
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
+      final result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      if (result.user != null) {
-        await sendEmailVerification(result.user!);
-      }
-
-      return result.user;
+      if (result.user != null) await sendEmailVerification(result.user!);
+      return result.user!;
     } catch (e) {
-      print("Error en registro: $e");
-      return null;
+      debugPrint("Error en registro: $e");
+      throw AuthException(_mapFirebaseError(e));
     }
   }
 
-  // 2. INICIAR SESIÓN
-  Future<User?> signIn(String email, String password) async {
+  Future<User> signIn(String email, String password) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
+      final result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return result.user;
+      return result.user!;
     } catch (e) {
-      print("Error en login: $e");
-      return null;
+      debugPrint("Error en login: $e");
+      throw AuthException(_mapFirebaseError(e));
     }
   }
 
-  // ✅ 3. INICIAR SESIÓN ANÓNIMA (Invitado)
-  // Esta es la llave maestra para saltarse errores de email en el taller
   Future<User?> signInAnonymously() async {
     try {
-      UserCredential result = await _auth.signInAnonymously();
-      print("🦆 ¡Quack! Entrando como Artista Invitado: ${result.user?.uid}");
+      final result = await _auth.signInAnonymously();
+      debugPrint("🦆 Entrando como Artista Invitado: ${result.user?.uid}");
       return result.user;
     } catch (e) {
-      print("⚠️ Error en login anónimo: $e");
+      debugPrint("⚠️ Error en login anónimo: $e");
       return null;
     }
   }
 
-  // 4. ENVIAR VERIFICACIÓN DE EMAIL
   Future<void> sendEmailVerification(User user) async {
     try {
       await user.sendEmailVerification();
-      print("🦆 Correo de verificación enviado a: ${user.email}");
+      debugPrint("🦆 Correo de verificación enviado a: ${user.email}");
     } catch (e) {
-      print("Error al enviar verificación: $e");
+      debugPrint("Error al enviar verificación: $e");
     }
   }
 
-  // 5. RECUPERAR CONTRASEÑA
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print("Error al enviar reset: $e");
-      rethrow;
+      debugPrint("Error al enviar reset: $e");
+      throw AuthException(_mapFirebaseError(e));
     }
   }
 
-  // 6. CERRAR SESIÓN
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
+  Future<void> signOut() async => _auth.signOut();
 
-  // Obtener el usuario actual
   User? get currentUser => _auth.currentUser;
 }

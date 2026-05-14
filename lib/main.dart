@@ -20,9 +20,9 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print("🦆 ¡Quack! Motor de Firebase encendido y conectado.");
+    debugPrint("🦆 ¡Quack! Motor de Firebase encendido y conectado.");
   } catch (e) {
-    print("⚠️ Error al inicializar Firebase: $e");
+    debugPrint("⚠️ Error al inicializar Firebase: $e");
   }
 
   runApp(const BlackCuackApp());

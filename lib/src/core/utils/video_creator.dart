@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:path_provider/path_provider.dart';
@@ -49,7 +49,7 @@ class VideoCreator {
           encoder.addFrame(frame);
         }
       } catch (e) {
-        print("Error procesando frame $i: $e");
+        debugPrint("Error procesando frame $i: $e");
       }
     }
 
@@ -95,7 +95,7 @@ class VideoCreator {
       onProgress(1.0);
       return ReturnCode.isSuccess(returnCode) ? outputPath : null;
     } catch (e) {
-      print("Error exportación móvil: $e");
+      debugPrint("Error exportación móvil: $e");
       return null;
     }
   }

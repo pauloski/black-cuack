@@ -2,6 +2,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+class AppColors {
+  static const background = Color(0xFF0E0E0E);
+  static const surface    = Color(0xFF1A1A1A);
+  static const primary    = Color(0xFFC1FFFE);
+  static const secondary  = Color(0xFFBC87FE);
+  static const tertiary   = Color(0xFFF3FFCA);
+  static const danger     = Color(0xFFFF4D4D);
+}
+
 // --- BOTÓN PRINCIPAL ---
 class QuackButton extends StatelessWidget {
   final String text;
@@ -17,11 +26,11 @@ class QuackButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: const Color(0xFFC1FFFE),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFC1FFFE).withOpacity(0.3),
+              color: AppColors.primary.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -62,7 +71,7 @@ class QuackCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: borderColor, width: 2),
       ),

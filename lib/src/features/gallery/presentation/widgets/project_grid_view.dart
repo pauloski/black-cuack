@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
-import 'package:blackcuack_studio/src/core/persistence/project_storage.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_player_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 
@@ -30,7 +29,7 @@ class _ProjectGridViewState extends State<ProjectGridView> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(
-              color: Color(0xFFBC87FE),
+              color: AppColors.secondary,
               strokeWidth: 2,
             ),
           );
@@ -74,8 +73,8 @@ class _ProjectGridViewState extends State<ProjectGridView> {
                       title: p.name,
                       date: "${p.date.day}/${p.date.month}",
                       borderColor: index % 2 == 0
-                          ? const Color(0xFFC1FFFE)
-                          : const Color(0xFFBC87FE),
+                          ? AppColors.primary
+                          : AppColors.secondary,
                       previewPath: previewUrl,
                     ),
                   ),
@@ -104,7 +103,7 @@ class _ProjectGridViewState extends State<ProjectGridView> {
   void _showOptionsDialog(BuildContext context, QuackProject p) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -112,7 +111,7 @@ class _ProjectGridViewState extends State<ProjectGridView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.edit, color: Color(0xFFC1FFFE)),
+            leading: const Icon(Icons.edit, color: AppColors.primary),
             title: const Text(
               'EDITAR PROYECTO',
               style: TextStyle(color: Colors.white, fontFamily: 'Lexend'),
@@ -127,10 +126,10 @@ class _ProjectGridViewState extends State<ProjectGridView> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.delete_forever, color: Color(0xFFFF4D4D)),
+            leading: const Icon(Icons.delete_forever, color: AppColors.danger),
             title: const Text(
               'BORRAR QUACK',
-              style: TextStyle(color: Color(0xFFFF4D4D), fontFamily: 'Lexend'),
+              style: TextStyle(color: AppColors.danger, fontFamily: 'Lexend'),
             ),
             onTap: () {
               Navigator.pop(context);
@@ -147,14 +146,14 @@ class _ProjectGridViewState extends State<ProjectGridView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Color(0xFFFF4D4D), width: 2),
+          side: const BorderSide(color: AppColors.danger, width: 2),
           borderRadius: BorderRadius.circular(20),
         ),
         title: const Text(
           "¿BORRAR QUACK?",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFFF4D4D)),
+          style: TextStyle(fontFamily: 'LuckiestGuy', color: AppColors.danger),
           textAlign: TextAlign.center,
         ),
         content: Text(
@@ -176,7 +175,7 @@ class _ProjectGridViewState extends State<ProjectGridView> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF4D4D),
+              backgroundColor: AppColors.danger,
             ),
             onPressed: () async {
               // 1. Mostramos un indicador de carga rápido para el borrado
@@ -188,9 +187,6 @@ class _ProjectGridViewState extends State<ProjectGridView> {
                 project
                     .photoPaths, // ✅ Ahora pasamos la lista de fotos para limpiar Storage
               );
-
-              // 3. Limpiamos cache local si existe
-              await ProjectStorage.deleteProject(project.id);
 
               if (mounted) {
                 Navigator.pop(context);

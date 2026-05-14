@@ -19,7 +19,7 @@ class ProjectService {
     if (_userId.isEmpty) return;
 
     try {
-      print("🦆 Iniciando subida de fotos a la nube...");
+      debugPrint("🦆 Iniciando subida de fotos a la nube...");
 
       final List<Future<String>> uploadTasks = [];
       for (int i = 0; i < project.photoPaths.length; i++) {
@@ -47,9 +47,9 @@ class ProjectService {
             'lastModified': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
 
-      print("🦆 ¡Proyecto '${project.name}' guardado correctamente!");
+      debugPrint("🦆 ¡Proyecto '${project.name}' guardado correctamente!");
     } catch (e) {
-      print("Error en saveProject: $e");
+      debugPrint("Error en saveProject: $e");
       rethrow;
     }
   }
@@ -78,13 +78,14 @@ class ProjectService {
     return _db.collectionGroup('projects').snapshots().map((snapshot) {
       final projects = snapshot.docs
           .map((doc) => QuackProject.fromJson(doc.data()))
-          .where((p) {
-            return p.workshopCode == workshopCode && p.isPublished == true;
-          })
+          .where((p) => p.workshopCode == workshopCode && p.isPublished == true)
           .toList();
 
       projects.sort((a, b) => b.date.compareTo(a.date));
       return projects;
+    }).handleError((e) {
+      debugPrint("⚠️ Error en galería de grupo ($workshopCode): $e");
+      return <QuackProject>[];
     });
   }
 
@@ -97,7 +98,7 @@ class ProjectService {
     if (_userId.isEmpty) return;
 
     try {
-      print("🧹 Iniciando limpieza profunda del proyecto: $projectId");
+      debugPrint("🧹 Iniciando limpieza profunda del proyecto: $projectId");
 
       // A. Borrar archivos físicos en Storage
       for (String url in photoUrls) {
@@ -122,9 +123,9 @@ class ProjectService {
           .doc(projectId)
           .delete();
 
-      print("🦆 Proyecto y fotos eliminados de la charca.");
+      debugPrint("🦆 Proyecto y fotos eliminados de la charca.");
     } catch (e) {
-      print("Error al realizar borrado total: $e");
+      debugPrint("Error al realizar borrado total: $e");
     }
   }
 
@@ -146,9 +147,9 @@ class ProjectService {
 
       await _db.collection('users').doc(_userId).delete();
       await _auth.currentUser?.delete();
-      print("🦆 Cuenta y Storage limpiados para siempre");
+      debugPrint("🦆 Cuenta y Storage limpiados para siempre");
     } catch (e) {
-      print("Error al eliminar cuenta: $e");
+      debugPrint("Error al eliminar cuenta: $e");
       rethrow;
     }
   }
