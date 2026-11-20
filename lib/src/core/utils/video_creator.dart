@@ -195,7 +195,11 @@ class VideoCreator {
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   static Future<Uint8List> _fetchBytes(String path) async {
-    if (path.startsWith('http')) {
+    // En web, las rutas de cuadro son `blob:` (captura) o `http(s)` (Storage);
+    // `dart:io File` no existe en web. XHR (package:http) lee ambas.
+    // En nativo se leen como archivo. Arreglo mínimo: habilita el GIF en web
+    // (la reescritura por bytes desde el repositorio local llega en T3-T5).
+    if (kIsWeb || path.startsWith('http') || path.startsWith('blob:')) {
       return (await http.get(Uri.parse(path))).bodyBytes;
     }
     return await File(path).readAsBytes();
