@@ -24,8 +24,11 @@ cd "$(dirname "$0")/.."
 echo "==> Guardia: este script solo publica en '$PROJECT_NAME'."
 echo "    Nunca en 'black-cuack-studio' ni en el apex blackquack.cl."
 
-echo "==> 1/2  flutter build web --release"
-flutter build web --release
+echo "==> 1/2  flutter build web --release (--no-tree-shake-icons)"
+# --no-tree-shake-icons: el subsetter dejaba fuera los glifos de las variantes
+# `_rounded` (íconos vacíos en inicio, cámara y exportar). Enviamos la fuente
+# completa de MaterialIcons para que se vean todos.
+flutter build web --release --no-tree-shake-icons
 
 if [ ! -f "$BUILD_DIR/index.html" ]; then
   echo "ERROR: no se encontró $BUILD_DIR/index.html tras el build." >&2

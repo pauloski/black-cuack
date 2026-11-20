@@ -69,9 +69,14 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 
 ---
 
+## Estado de T0
+
+- **T0 CERRADO:** demo publicada en **https://demo.blackquack.cl** (y `blackquack-demo.pages.dev`) con la **interfaz final** de `wip` y la **exportación GIF funcionando** en web (12 cuadros verificados por Paulo). Vía de publicación operativa (`scripts/deploy_demo.sh`), `noindex` activo en ambos hostnames.
+
 ## Pendientes
 
-- **Configurar Cloudflare Access** (`demo.blackquack.cl` y `blackquack-demo.pages.dev`) **antes de compartir la demo fuera del equipo.** Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
+- **Configurar Cloudflare Access** (`demo.blackquack.cl` y `blackquack-demo.pages.dev`) **antes de compartir la demo fuera del equipo.**
+- **Íconos `_rounded` en blanco** (inicio, cámara, exportar): causados por el tree-shaking de íconos del build web, que dejaba una fuente MaterialIcons de 16 KB sin los glifos de las variantes `_rounded`. **Corregido** con `--no-tree-shake-icons` en `scripts/deploy_demo.sh` (fuente completa de 1,6 MB). Pendiente **redeploy** para que la demo publicada lo muestre. Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
 
 ## 4. Bitácora
 
