@@ -1,0 +1,4 @@
+# Cloudflare Pages headers.
+# Demo privada: pedir a los buscadores que NO la indexen en todas las respuestas.
+/*
+  X-Robots-Tag: noindex, nofollow

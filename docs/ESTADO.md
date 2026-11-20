@@ -69,6 +69,10 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 
 ---
 
+## Pendientes
+
+- **Configurar Cloudflare Access** (`demo.blackquack.cl` y `blackquack-demo.pages.dev`) **antes de compartir la demo fuera del equipo.** Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
+
 ## 4. Bitácora
 
 - **2026-11-20** — Reorientación a herramienta de aula. Auditoría git (trabajo ya protegido en `wip`; docs consolidados en `main`), creada `demo/semana-1`. Verificada la tabla de HDU contra el código y corregidas HDU4 y HDU13 en `docs/HISTORIAS_DE_USUARIO.md`. Diagnóstico de exportación, miniaturas y modo invitado con archivo:línea. Plan de la semana aprobado. Creados `docs/decisiones/0001-modo-local-demo.md` y `scripts/deploy_demo.sh` (pendiente T0).
