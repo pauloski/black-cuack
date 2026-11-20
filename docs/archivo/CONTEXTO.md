@@ -1,3 +1,4 @@
+Documento histórico. La dirección vigente del proyecto está en CLAUDE.md." No los borres.
 # 🦆 Blackcuack Studio - Contexto del Proyecto
 
 ## 🎯 Propósito
