@@ -44,7 +44,7 @@ El **flujo jóvenes** (7.° básico a 4.° medio) es la fase 2: no se construye 
 Repositorio `black-cuack`, versión 1.0.0, **Flutter (Dart 3.11+)** para web, iOS y Android, arquitectura feature-first con servicios `*_service.dart`. El stack de la app se mantiene: Flutter es el que declara el anteproyecto.
 
 **Qué se conserva y se mejora:**
-- La identidad visual: paleta `AppColors`, tipografías, splash con Blacky, pantalla de inicio. Está muy lograda; no la rediseñes.
+- La identidad visual: paleta `AppColors`, tipografías, logo, splash con Blacky, inicio con fondo y login. **La identidad vigente es la de la rama `wip`, ya integrada en `demo/semana-1`** (merge `c5aece0`); está muy lograda, no la rediseñes.
 - El motor de captura: cámara, papel cebolla, línea de tiempo, FPS, reproducción, cuadrícula, deshacer.
 - La exportación (GIF, MP4, ZIP), **una vez corregida**.
 - El concepto de grupo con código de 5 caracteres ("Mis grupos": crear, unirse, rol admin), como base de la sala (HDU7). El rol admin es la semilla del rol docente.
@@ -63,7 +63,7 @@ Repositorio `black-cuack`, versión 1.0.0, **Flutter (Dart 3.11+)** para web, iO
 - FFmpegKit (descontinuado) para MP4 en móvil → codificación nativa (MediaCodec) en Android. No es de esta semana.
 
 **Qué se congela (no se sigue desarrollando ahora):**
-- Borrado de soportes (HDU18) y cámara remota: son de IGNITE. El trabajo sin commit se guarda en una rama propia, sin mezclar con `main`.
+- Lo congelado son **solo** las funciones de **borrado de soportes (HDU18)** y **cámara remota**: son de IGNITE. Su código ya está en `demo/semana-1` pero queda **oculto y no accesible tras el flag `kEnableIgniteFeatures` (`lib/src/core/config/feature_flags.dart`), sin borrar código**. La identidad visual de `wip` **no** está congelada: se integró en la demo.
 
 **Vocabulario:** en la interfaz se puede mantener la voz de marca ("Quack" para un proyecto), pero el concepto de aula se llama **sala** o **taller**, no "charca", en la documentación y el código nuevo. Unifica el nombre de la marca como **BlackQuack** (no "Blackcuack").
 
