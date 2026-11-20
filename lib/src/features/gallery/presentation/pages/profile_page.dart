@@ -43,10 +43,10 @@ class ProfilePage extends StatelessWidget {
           ),
           title: const Text(
             "⚠️ ¿BORRAR CUENTA?",
-            style: TextStyle(color: Colors.white, fontFamily: 'LuckiestGuy'),
+            style: TextStyle(color: Colors.white, fontFamily: 'Lexend'),
           ),
           content: const Text(
-            "Esta acción eliminará para siempre tu cuenta y todos tus proyectos. ¡No podrás recuperarlos! 🦆💥",
+            "Esta acción eliminará para siempre tu cuenta y todos tus proyectos. Esta acción es irreversible.",
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -83,7 +83,7 @@ class ProfilePage extends StatelessWidget {
           context: context,
           barrierDismissible: false,
           builder: (c) => const Center(
-            child: CircularProgressIndicator(color: Color(0xFFC1FFFE)),
+            child: CircularProgressIndicator(color: Color(0xFFFFB800)),
           ),
         );
 
@@ -117,8 +117,8 @@ class ProfilePage extends StatelessWidget {
       backgroundColor: const Color(0xFF0E0E0E),
       appBar: AppBar(
         title: const Text(
-          "MI PERFIL 🦆",
-          style: TextStyle(color: Color(0xFFC1FFFE), fontFamily: 'LuckiestGuy'),
+          "MI PERFIL",
+          style: TextStyle(color: Color(0xFFFFB800), fontFamily: 'Lexend'),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -159,7 +159,7 @@ class ProfilePage extends StatelessWidget {
             _buildProfileOption(
               icon: Icons.privacy_tip_outlined,
               title: "POLÍTICA DE PRIVACIDAD",
-              color: const Color(0xFFC1FFFE),
+              color: const Color(0xFFFFB800),
               onTap: _launchPrivacyUrl,
             ),
             _buildProfileOption(

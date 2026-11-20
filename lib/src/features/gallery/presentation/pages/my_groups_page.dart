@@ -30,8 +30,8 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         title: const Text(
           'MIS GRUPOS',
           style: TextStyle(
-            fontFamily: 'LuckiestGuy',
-            color: Color(0xFFC1FFFE),
+            fontFamily: 'Lexend',
+            color: Color(0xFFFFB800),
             fontSize: 22,
           ),
         ),
@@ -41,7 +41,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFC1FFFE)),
+              child: CircularProgressIndicator(color: Color(0xFFFFB800)),
             );
           }
 
@@ -62,7 +62,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
             children: [
               const SizedBox(height: 10),
               if (ownedGroups.isNotEmpty) ...[
-                _buildSectionHeader("CREADOS POR MÍ", const Color(0xFFC1FFFE)),
+                _buildSectionHeader("CREADOS POR MÍ", const Color(0xFFFFB800)),
                 ...ownedGroups
                     .map((doc) => _buildGroupCard(doc, true))
                     .toList(),
@@ -90,7 +90,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
     final String groupId = doc.id; // ✅ ID largo de Firebase
     final String groupName = data['name'] ?? 'Sin nombre';
     final Color powerColor = isOwner
-        ? const Color(0xFFC1FFFE)
+        ? const Color(0xFFFFB800)
         : const Color(0xFFBC87FE);
 
     return Container(
@@ -121,7 +121,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         title: Text(
           groupName.toUpperCase(),
           style: const TextStyle(
-            fontFamily: 'LuckiestGuy',
+            fontFamily: 'Lexend',
             fontSize: 14,
             color: Colors.white,
           ),
@@ -184,8 +184,8 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         title: const Text(
           "RENOMBRAR GRUPO",
           style: TextStyle(
-            fontFamily: 'LuckiestGuy',
-            color: Color(0xFFC1FFFE),
+            fontFamily: 'Lexend',
+            color: Color(0xFFFFB800),
             fontSize: 18,
           ),
         ),
@@ -200,7 +200,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
               borderSide: BorderSide(color: Colors.white10),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFC1FFFE)),
+              borderSide: BorderSide(color: Color(0xFFFFB800)),
             ),
           ),
         ),
@@ -214,7 +214,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC1FFFE),
+              backgroundColor: const Color(0xFFFFB800),
             ),
             onPressed: () async {
               if (controller.text.isNotEmpty) {
@@ -243,7 +243,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           "¿ELIMINAR GRUPO?",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFFF4D4D)),
+          style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFF4D4D)),
         ),
         content: Text(
           "Esta acción borrará el grupo '$name'. Los alumnos ya no podrán acceder.",
@@ -281,7 +281,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           "¿SALIR DEL GRUPO?",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFFFB34D)),
+          style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB34D)),
         ),
         content: Text(
           "¿Quieres desvincularte de '$name'? Ya no verás sus proyectos.",
@@ -320,7 +320,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
         Text(
           title,
           style: TextStyle(
-            fontFamily: 'LuckiestGuy',
+            fontFamily: 'Lexend',
             fontSize: 16,
             color: color,
             letterSpacing: 1.2,
@@ -347,7 +347,7 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
           Icon(Icons.hub_rounded, size: 80, color: Colors.white10),
           SizedBox(height: 20),
           Text(
-            "Tu charca está tranquila...\nAun no te has unido ni creado ningún grupo.",
+            "Aún no tienes grupos.\nCrea uno o únete con un código.",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white38,

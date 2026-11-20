@@ -6,12 +6,14 @@ class CameraControls extends StatelessWidget {
   final VoidCallback onToggleGrid;
   final VoidCallback onShowSettings;
   final VoidCallback onExport;
-  final VoidCallback onSave; // Esta es la que disparará el nuevo modal
+  final VoidCallback onSave;
   final VoidCallback onTakePhoto;
   final VoidCallback onPlay;
   final VoidCallback onUndo;
   final int? selectedIndex;
   final bool hasPhotos;
+  final int onionLayers;
+  final VoidCallback onCycleOnionLayers;
 
   const CameraControls({
     super.key,
@@ -26,6 +28,8 @@ class CameraControls extends StatelessWidget {
     required this.onUndo,
     this.selectedIndex,
     required this.hasPhotos,
+    required this.onionLayers,
+    required this.onCycleOnionLayers,
   });
 
   @override
@@ -45,6 +49,8 @@ class CameraControls extends StatelessWidget {
                 tooltip: "Rejilla",
               ),
               const SizedBox(width: 12),
+              _onionLayersBtn(),
+              const SizedBox(width: 12),
               _circleBtn(
                 icon: Icons.tune,
                 onTap: onShowSettings,
@@ -62,9 +68,9 @@ class CameraControls extends StatelessWidget {
               _circleBtn(
                 icon: isEditing ? Icons.save : Icons.check,
                 onTap: hasPhotos ? onSave : () {}, // Solo funciona si hay fotos
-                color: const Color(0xFFC1FFFE),
+                color: const Color(0xFFFFB800),
                 active: true, // Lo mantenemos activo para que resalte
-                tooltip: "Finalizar Quack",
+                tooltip: "Guardar y salir",
               ),
             ],
           ),
@@ -118,7 +124,7 @@ class CameraControls extends StatelessWidget {
               IconButton(
                 icon: Icon(
                   Icons.play_circle_fill,
-                  color: hasPhotos ? const Color(0xFFC1FFFE) : Colors.white10,
+                  color: hasPhotos ? const Color(0xFFFFB800) : Colors.white10,
                   size: 55,
                 ),
                 onPressed: hasPhotos ? onPlay : null,
@@ -127,6 +133,47 @@ class CameraControls extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _onionLayersBtn() {
+    final isOn = onionLayers > 0;
+    final color = isOn ? const Color(0xFFFFB800) : Colors.white38;
+    return Tooltip(
+      message: 'Capas de papel cebolla',
+      child: GestureDetector(
+        onTap: onCycleOnionLayers,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isOn
+                ? const Color(0xFFFFB800).withValues(alpha: 0.15)
+                : Colors.black54,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isOn ? const Color(0xFFFFB800) : Colors.white24,
+              width: isOn ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.layers_rounded, size: 13, color: color),
+              const SizedBox(height: 1),
+              Text(
+                onionLayers == 0 ? '—' : '$onionLayers',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -10,46 +10,47 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _didNavigate = false;
 
   @override
   void initState() {
     super.initState();
-    // 🕹️ Inicializamos el controlador (sin duración, la toma del archivo JSON)
     _controller = AnimationController(vsync: this);
+    Future.delayed(const Duration(seconds: 5), _goToLogin);
+  }
 
-    // 👂 Escuchamos el estado de la animación
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        // ✅ CUANDO TERMINE: Saltamos al Login
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      }
-    });
+  void _goToLogin() {
+    if (mounted && !_didNavigate) {
+      _didNavigate = true;
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose(); // Siempre limpiar para no gastar memoria
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final duckSize = (size.shortestSide * 0.45).clamp(160.0, 320.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E0E),
       body: Center(
-        child: Lottie.network(
-          'https://assets10.lottiefiles.com/packages/lf20_qp1q7mct.json',
+        child: Lottie.asset(
+          'assets/lottie/blacky.json',
           controller: _controller,
-          onLoaded: (composition) {
-            // 🎬 Cuando el archivo carga, ajustamos el controlador a su duración real
-            _controller.duration = composition.duration;
-            _controller.forward(); // Y le damos Play
-          },
-          width: 300,
-          height: 300,
+          width: duckSize,
+          height: duckSize,
           fit: BoxFit.contain,
+          onLoaded: (composition) {
+            _controller
+              ..duration = composition.duration
+              ..repeat();
+          },
         ),
       ),
     );

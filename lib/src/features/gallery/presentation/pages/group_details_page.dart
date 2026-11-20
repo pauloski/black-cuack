@@ -32,8 +32,8 @@ class GroupDetailsPage extends StatelessWidget {
             Text(
               groupName.toUpperCase(),
               style: const TextStyle(
-                fontFamily: 'LuckiestGuy',
-                color: Color(0xFFC1FFFE),
+                fontFamily: 'Lexend',
+                color: Color(0xFFFFB800),
                 fontSize: 18,
               ),
             ),
@@ -62,7 +62,7 @@ class GroupDetailsPage extends StatelessWidget {
           if (projects.isEmpty) {
             return Center(
               child: Text(
-                "¡AÚN NO HAY QUACKS COMPARTIDOS!",
+                "¡AÚN NO HAY PROYECTOS COMPARTIDOS!",
                 style: TextStyle(
                   fontFamily: 'Lexend',
                   color: Colors.white.withOpacity(0.2),
@@ -132,8 +132,8 @@ class GroupDetailsPage extends StatelessWidget {
                               Text(
                                 project.name.toUpperCase(),
                                 style: const TextStyle(
-                                  color: Color(0xFFC1FFFE),
-                                  fontFamily: 'LuckiestGuy',
+                                  color: Color(0xFFFFB800),
+                                  fontFamily: 'Lexend',
                                   fontSize: 12,
                                 ),
                                 maxLines: 1,

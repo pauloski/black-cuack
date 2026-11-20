@@ -98,8 +98,8 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
               Text(
                 widget.project.name.toUpperCase(),
                 style: const TextStyle(
-                  color: Color(0xFFC1FFFE),
-                  fontFamily: 'LuckiestGuy',
+                  color: Color(0xFFFFB800),
+                  fontFamily: 'Lexend',
                   fontSize: 18,
                 ),
               ),
@@ -146,7 +146,7 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
       child: Text(
         "${_fps.round()} FPS | FOTO: ${_currentFrame + 1}/${widget.project.photoPaths.length}",
         style: const TextStyle(
-          color: Color(0xFFC1FFFE),
+          color: Color(0xFFFFB800),
           fontFamily: 'Lexend',
           fontSize: 10,
           fontWeight: FontWeight.bold,

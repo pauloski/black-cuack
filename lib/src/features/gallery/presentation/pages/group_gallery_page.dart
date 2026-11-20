@@ -31,8 +31,8 @@ class GroupGalleryPage extends StatelessWidget {
             Text(
               groupName.toUpperCase(),
               style: const TextStyle(
-                fontFamily: 'LuckiestGuy',
-                color: Color(0xFFC1FFFE),
+                fontFamily: 'Lexend',
+                color: Color(0xFFFFB800),
                 fontSize: 18,
               ),
             ),
@@ -62,10 +62,10 @@ class GroupGalleryPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("🦆", style: TextStyle(fontSize: 50)),
+                  const Icon(Icons.movie_filter_outlined, size: 50, color: Colors.white24),
                   const SizedBox(height: 15),
                   Text(
-                    "¡AÚN NO HAY QUACKS EN ESTE GRUPO!",
+                    "¡AÚN NO HAY PROYECTOS EN ESTE GRUPO!",
                     style: TextStyle(
                       fontFamily: 'Lexend',
                       color: Colors.white.withOpacity(0.2),
@@ -134,8 +134,8 @@ class GroupGalleryPage extends StatelessWidget {
                 Text(
                   project.name.toUpperCase(),
                   style: const TextStyle(
-                    color: Color(0xFFC1FFFE),
-                    fontFamily: 'LuckiestGuy',
+                    color: Color(0xFFFFB800),
+                    fontFamily: 'Lexend',
                     fontSize: 12,
                   ),
                   maxLines: 1,

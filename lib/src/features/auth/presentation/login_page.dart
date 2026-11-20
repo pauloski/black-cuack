@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart'; // AuthService + AuthException
 
 class LoginPage extends StatefulWidget {
@@ -43,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showSnackBar("¡Faltan datos, Artista! 🦆", isError: true);
+      _showSnackBar("Completa todos los campos", isError: true);
       setState(() => _isLoading = false);
       return;
     }
@@ -66,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
   void _handleForgotPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      _showSnackBar("Escribe tu email primero 🦆", isError: true);
+      _showSnackBar("Escribe tu email primero", isError: true);
       return;
     }
     try {
@@ -95,19 +96,17 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: const Color(0xFF0E0E0E),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.blur_on, size: 80, color: Color(0xFFC1FFFE)),
-              const Text(
-                'BLACKCUACK',
-                style: TextStyle(
-                  fontFamily: 'LuckiestGuy',
-                  fontSize: 40,
-                  color: Color(0xFFC1FFFE),
-                  letterSpacing: 2,
-                ),
+              SvgPicture.asset(
+                'assets/images/logo-login.svg',
+                height: 154,
               ),
               const SizedBox(height: 40),
 
@@ -149,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: _handleAuth,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isLoginMode
-                          ? const Color(0xFFC1FFFE)
+                          ? const Color(0xFFFFB800)
                           : const Color(0xFFBC87FE),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -160,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'LuckiestGuy',
+                        fontFamily: 'Lexend',
                       ),
                     ),
                   ),
@@ -194,6 +193,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -226,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Color(0xFFC1FFFE)),
+          borderSide: const BorderSide(color: Color(0xFFFFB800)),
         ),
       ),
     );

@@ -15,8 +15,8 @@ class WorkshopGalleryPage extends StatelessWidget {
       backgroundColor: const Color(0xFF0E0E0E),
       appBar: AppBar(
         title: const Text(
-          "LA CHARCA GRUPAL 🦆",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE)),
+          "GALERÍA DEL GRUPO",
+          style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB800)),
         ),
         backgroundColor: const Color(0xFF1A1A1A),
         elevation: 0,
@@ -127,8 +127,8 @@ class WorkshopGalleryPage extends StatelessWidget {
                   Text(
                     p.name.toUpperCase(),
                     style: const TextStyle(
-                      color: Color(0xFFC1FFFE),
-                      fontFamily: 'LuckiestGuy',
+                      color: Color(0xFFFFB800),
+                      fontFamily: 'Lexend',
                       fontSize: 11,
                     ),
                     overflow: TextOverflow.ellipsis,

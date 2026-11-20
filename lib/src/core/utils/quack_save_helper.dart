@@ -41,7 +41,7 @@ class QuackSaveHelper {
             children: [
               SizedBox(height: 10),
               CircularProgressIndicator(
-                color: Color(0xFFC1FFFE),
+                color: Color(0xFFFFB800),
                 strokeWidth: 5,
               ),
               SizedBox(height: 25),
@@ -50,14 +50,14 @@ class QuackSaveHelper {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontFamily: 'LuckiestGuy',
+                  fontFamily: 'Lexend',
                   fontSize: 18,
                   letterSpacing: 1.2,
                 ),
               ),
               SizedBox(height: 10),
               Text(
-                "El patito está nadando...\nNo cierres la pestaña. 🦆",
+                "Guardando...\nNo cierres la pestaña.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white54,
@@ -84,7 +84,7 @@ class QuackSaveHelper {
       debugPrint("🦆 ¡Proyecto '${project.name}' guardado correctamente!");
     } on TimeoutException {
       debugPrint("⚠️ Timeout al guardar '${project.name}'");
-      _showToast("Sin conexión — el proyecto se guardó solo localmente 🦆");
+      _showToast("Sin conexión — el proyecto se guardó solo localmente");
     } catch (e) {
       debugPrint("⚠️ Error al guardar: $e");
       _showToast("Error al publicar. Revisa tu conexión.");
