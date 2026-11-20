@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
 
 // --- IMPORTACIONES DE PÁGINAS ---
 import 'package:blackcuack_studio/src/features/auth/presentation/splash_page.dart';
@@ -19,6 +20,13 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Almacén local primero (tolerante: Hive o respaldo en memoria). No bloquea
+  // el arranque si falla.
+  await initRepositories();
+  await requestPersistentStorage();
+
+  // Firebase es opcional para la demo (local-first): si no enciende, la app
+  // sigue funcionando sin conexión.
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
