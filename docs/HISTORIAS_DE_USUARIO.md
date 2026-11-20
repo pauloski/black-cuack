@@ -9,7 +9,7 @@ Nivel A = imprescindible para el piloto · B = versión simple en BUILD · C = I
 | HDU1 · Captura con papel cebolla, sin internet | A | Parcial | Adaptar |
 | HDU2 · Captura y exportación vertical u horizontal | B | No existe | Construir (simple) |
 | HDU3 · Línea de tiempo y FPS | A | Parcial | Adaptar |
-| HDU4 · Exportación MP4, GIF y ZIP | A | Roto en web | Corregir primero |
+| HDU4 · Exportación MP4, GIF y ZIP | A | Parcial: en `main` solo GIF (web) + MP4 (móvil); **el ZIP no existe en main**; el ZIP de 22 bytes está en la rama `wip` (regresión por leer rutas web con `dart:io`) | Corregir primero (exportación por bytes) |
 | HDU5 · Versiones de proyecto, firmadas por autor | A | No existe (hay campo "artista" de texto libre al guardar) | Construir |
 | HDU6 · Perfiles de estudiante sin correo | A | Contrario al diseño | Reemplazar |
 | HDU7 · Sala por QR o código de 5 dígitos | A | Parcial (concepto) | Adaptar |
@@ -18,7 +18,7 @@ Nivel A = imprescindible para el piloto · B = versión simple en BUILD · C = I
 | HDU10 · Sincronización asíncrona al guardar o exportar | A | Contrario al diseño | Reemplazar |
 | HDU11 · Dashboard de trazabilidad | A | No existe | Construir |
 | HDU12 · Reporte para la UTP | B | No existe | Construir (simple) |
-| HDU13 · Proyección en pantalla grande | B | Verificar | Verificar |
+| HDU13 · Proyección en pantalla grande | B | Parcial: el "proyector" es un **reproductor en bucle con controles visibles** (cabecera, botones FPS, badge x/y); **no** es un modo de proyección a pantalla completa | Construir (modo proyección sin controles) |
 | HDU14 · Continuidad fuera del aula con código | B | No existe | Construir (simple) |
 | HDU15 · Guías de movimiento y timing chart (IGNITE) | C | Parcial | Congelar (IGNITE) |
 | HDU16 · Misiones gamificadas con Blacky (IGNITE) | C | No existe | Congelar (IGNITE) |
@@ -26,6 +26,8 @@ Nivel A = imprescindible para el piloto · B = versión simple en BUILD · C = I
 | HDU18 · Borrado manual de soportes (IGNITE) | C | En desarrollo, sin commit | Congelar (IGNITE): guardar en rama |
 | HDU19 · Chroma key (IGNITE) | C | No existe | Congelar (IGNITE) |
 | HDU20 · Composición en tres pistas (IGNITE) | C | No existe | Congelar (IGNITE) |
+
+**Verificado el 2026-11-20 contra el código de `main`.** Los niveles A y B se confirmaron archivo por archivo; las dos correcciones de estado son HDU4 (en `main` no hay ZIP; el ZIP de 22 bytes vive en la rama `wip`) y HDU13 (es un reproductor con controles, no un modo de proyección). La evidencia `archivo:línea` de cada HDU está en `docs/ESTADO.md` §1.
 
 **Lectura rápida:** el núcleo de creación (HDU1, 3 y 4) existe y tiene una interfaz de marca muy lograda; hay que corregirlo y completarlo. La capa de aula (HDU6 a 11), que es el valor diferencial del proyecto, está casi toda por construir, y dos piezas actuales (login con email y datos en la nube con URLs públicas) van en contra del diseño y deben reemplazarse.
 
@@ -61,7 +63,7 @@ Criterios de aceptación:
 
 > Como estudiante, quiero ordenar mis cuadros y elegir la velocidad, para ver mi animación como la imaginé.
 
-**Estado en el prototipo:** Parcial. Línea de tiempo con miniaturas, borrar cuadros, FPS por slider, reproducción y deshacer. Faltan: reordenar, duplicar, atajos de FPS y bucle desde cualquier cuadro (verificar). **Acción:** Adaptar.
+**Estado en el prototipo:** Parcial (verificado). Línea de tiempo con miniaturas y selección por toque (`camera_timeline.dart:34-66`), borrar cuadro, slider de FPS 1–24 (`camera_page.dart:186-196`) y reproducción. **Confirmado que faltan:** reordenar (no hay `ReorderableListView`), duplicar, atajos de FPS (6/8/12/15/24), bucle desde cualquier cuadro (la reproducción arranca siempre en 0 y no repite, `camera_page.dart:89-103`) y **deshacer el borrado** (hoy el borrado es permanente; el botón solo deshace la última captura, `camera_page.dart:321-333`). **Acción:** Adaptar.
 
 Criterios de aceptación:
 - [ ] Reordenar, duplicar y borrar cuadros, con deshacer.
@@ -73,7 +75,7 @@ Criterios de aceptación:
 
 > Como estudiante, quiero exportar mi animación, para mostrarla y compartirla fuera de la app.
 
-**Estado en el prototipo:** Roto en web. GIF, MP4 y ZIP existen, pero el ZIP exportado en web pesa 22 bytes: es un ZIP vacío, sin cuadros. MP4 web depende de FFmpeg.wasm (~30 MB) y MP4 móvil de FFmpegKit, que está descontinuado. Faltan marca de agua y quitar metadatos. **Acción:** Corregir primero.
+**Estado en el prototipo:** Parcial / a corregir. **En `main` solo existen GIF (web) y MP4 (móvil); no hay exportación ZIP** (`lib/src/core/utils/video_creator.dart`, sin dependencia `archive`). El ZIP de 22 bytes que se observó está en la rama `wip` (`video_creator.dart` commit `c58b569`): un helper `_fetchBytes` enruta las rutas web (`blob:`) por `dart:io File`, no soportado en web, y el error se traga en un `try/catch` por cuadro → el `archive` queda vacío → ZIP de 22 bytes. La causa de fondo es que los cuadros se manejan como **referencias** (`blob:`/URL de Storage), no como datos. MP4 web depende de FFmpeg.wasm (~30 MB) y MP4 móvil de FFmpegKit (descontinuado). Faltan marca de agua y quitar metadatos. **Acción:** Corregir primero — exportación por bytes (GIF + ZIP esta semana; MP4 queda pendiente para el MVP).
 
 Criterios de aceptación:
 - [ ] Exporta MP4, GIF y ZIP de fotogramas en el dispositivo, sin internet.
@@ -195,7 +197,7 @@ Criterios de aceptación:
 
 > Como docente, quiero mostrar en un televisor o proyector lo que se anima, para que todo el curso vea avances y exhibiciones.
 
-**Estado en el prototipo:** Verificar. El historial menciona un "proyector stop-motion"; confirmar si es un modo de proyección a pantalla completa o solo el reproductor. **Acción:** Verificar.
+**Estado en el prototipo:** Parcial (verificado). El "proyector" es, en realidad, un **reproductor en bucle con interfaz visible**: `lib/src/features/gallery/presentation/pages/movie_player_page.dart` auto-reproduce y repite los cuadros (`:22-39`), pero muestra cabecera con título y autor (`:85-118`), un badge "FPS | FOTO x/y" (`:138-156`) y controles de FPS y play/pausa (`:158-197`). La palabra "proyector" aparece solo como comentario (`:55`). **No hay** modo a pantalla completa, inmersivo ni ocultamiento de controles. **Acción:** Construir (modo proyección a pantalla completa, sin botones ni menús).
 
 Criterios de aceptación:
 - [ ] Modo proyección a pantalla completa, sin botones ni menús.
