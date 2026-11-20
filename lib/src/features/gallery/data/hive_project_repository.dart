@@ -22,14 +22,16 @@ class HiveProjectRepository implements ProjectRepository {
   static const String framesBoxName = 'bq_frames';
 
   late Box<String> _projects;
-  late Box<Uint8List> _frames;
+  // Los cuadros (bytes) van en una LazyBox: no se cargan todos en memoria al
+  // abrir; cada uno se lee bajo demanda.
+  late LazyBox<Uint8List> _frames;
 
   final Random _rng = Random();
 
   @override
   Future<void> init() async {
     _projects = await Hive.openBox<String>(projectsBoxName);
-    _frames = await Hive.openBox<Uint8List>(framesBoxName);
+    _frames = await Hive.openLazyBox<Uint8List>(framesBoxName);
   }
 
   /// Id de cuadro único y estable, sin dependencias externas:
@@ -87,7 +89,7 @@ class HiveProjectRepository implements ProjectRepository {
 
   @override
   Future<Uint8List?> loadFrameBytes(String frameId) async {
-    return _frames.get(frameId);
+    return await _frames.get(frameId);
   }
 
   @override
@@ -96,7 +98,7 @@ class HiveProjectRepository implements ProjectRepository {
     if (project == null) return [];
     final frames = <Uint8List>[];
     for (final id in project.photoPaths) {
-      final bytes = _frames.get(id);
+      final bytes = await _frames.get(id);
       if (bytes != null) frames.add(bytes);
     }
     return frames;
