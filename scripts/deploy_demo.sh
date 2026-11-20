@@ -32,7 +32,7 @@ if [ ! -f "$BUILD_DIR/index.html" ]; then
   exit 1
 fi
 
-echo "==> 2/2  wrangler pages deploy ($PROJECT_NAME, Direct Upload)"
-npx wrangler pages deploy "$BUILD_DIR" --project-name "$PROJECT_NAME"
+echo "==> 2/2  wrangler pages deploy ($PROJECT_NAME, Direct Upload, rama main)"
+npx wrangler pages deploy "$BUILD_DIR" --project-name "$PROJECT_NAME" --branch main
 
 echo "==> Listo. Revisa la URL *.pages.dev y el subdominio demo.blackquack.cl."

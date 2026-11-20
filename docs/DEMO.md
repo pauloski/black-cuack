@@ -22,7 +22,7 @@ Hace `flutter build web --release` y `wrangler pages deploy build/web --project-
 ### Configuración inicial (una vez)
 
 1. Autenticar wrangler: `npx wrangler login` (cuenta con acceso a Pages).
-2. Crear el proyecto: `npx wrangler pages project create blackquack-demo`.
+2. Crear el proyecto: `npx wrangler pages project create blackquack-demo --production-branch main`.
 3. Primer deploy: `./scripts/deploy_demo.sh` → entrega una URL `*.pages.dev`.
 4. Subdominio: en Cloudflare → Pages → `blackquack-demo` → Custom domains → agregar `demo.blackquack.cl` (la zona ya está en Cloudflare; el registro se crea solo). No se modifican otros registros.
 5. Cloudflare Access (Zero Trust → Access → Applications → Add → Self-hosted): aplicación para `demo.blackquack.cl`, política **Allow** solo a los correos de Paulo y Karen. Probar en incógnito: debe pedir login antes de servir la app.
