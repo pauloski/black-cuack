@@ -76,7 +76,8 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 ## Pendientes
 
 - **Configurar Cloudflare Access** (`demo.blackquack.cl` y `blackquack-demo.pages.dev`) **antes de compartir la demo fuera del equipo.**
-- **Íconos `_rounded` en blanco** (inicio, cámara, exportar): causados por el tree-shaking de íconos del build web, que dejaba una fuente MaterialIcons de 16 KB sin los glifos de las variantes `_rounded`. **Corregido** con `--no-tree-shake-icons` en `scripts/deploy_demo.sh` (fuente completa de 1,6 MB). Pendiente **redeploy** para que la demo publicada lo muestre. Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
+- **Íconos `_rounded` en blanco** (inicio, cámara, exportar): causados por el tree-shaking de íconos del build web, que dejaba una fuente MaterialIcons de 16 KB sin los glifos de las variantes `_rounded`. **Corregido y publicado** con `--no-tree-shake-icons` en `scripts/deploy_demo.sh` (fuente completa de 1,6 MB; verificado en vivo).
+- **Investigar por qué el tree-shaking de íconos excluye las variantes `_rounded`, para volver al build optimizado** (hoy se publica con la fuente completa, +1,6 MB). Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
 
 ## 4. Bitácora
 
