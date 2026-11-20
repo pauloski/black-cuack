@@ -34,16 +34,16 @@ void showGroupManagementSheet(BuildContext context) {
           ),
           const SizedBox(height: 20),
           const Text(
-            "MI CHARCA",
+            "MIS GRUPOS",
             style: TextStyle(
-              fontFamily: 'LuckiestGuy',
+              fontFamily: 'Lexend',
               fontSize: 24,
-              color: Color(0xFFC1FFFE),
+              color: Color(0xFFFFB800),
             ),
           ),
           const SizedBox(height: 10),
           const Text(
-            "Gestiona tus grupos para compartir tus Quacks",
+            "Gestiona tus grupos para compartir proyectos",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white38,
@@ -93,7 +93,7 @@ void showGroupManagementSheet(BuildContext context) {
                                 : Colors.redAccent,
                             content: Text(
                               success
-                                  ? "¡Te has unido al grupo! 🦆"
+                                  ? "¡Te has unido al grupo!"
                                   : "Código no encontrado ⚠️",
                             ),
                           ),
@@ -112,7 +112,7 @@ void showGroupManagementSheet(BuildContext context) {
           // --- SECCIÓN: CREAR ---
           _buildActionCard(
             title: "CREAR NUEVO GRUPO",
-            color: const Color(0xFFC1FFFE),
+            color: const Color(0xFFFFB800),
             child: QuackButton(
               text: "GENERAR CÓDIGO",
               onPressed: () async {
@@ -136,7 +136,7 @@ void showGroupManagementSheet(BuildContext context) {
               Navigator.pushNamed(context, '/my_groups');
             },
             child: const Text(
-              "VER MIS GRUPOS 🦆",
+              "VER MIS GRUPOS",
               style: TextStyle(
                 color: Colors.white24,
                 fontSize: 12,
@@ -160,7 +160,7 @@ Future<String?> _showNameDialog(BuildContext context) async {
       backgroundColor: const Color(0xFF1A1A1A),
       title: const Text(
         "NOMBRE DEL GRUPO",
-        style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE)),
+        style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB800)),
       ),
       content: TextField(
         autofocus: true,
@@ -180,7 +180,7 @@ Future<String?> _showNameDialog(BuildContext context) async {
           onPressed: () => Navigator.pop(context, tempName),
           child: const Text(
             "CREAR",
-            style: TextStyle(color: Color(0xFFC1FFFE)),
+            style: TextStyle(color: Color(0xFFFFB800)),
           ),
         ),
       ],
@@ -195,12 +195,12 @@ void _showSuccessDialog(BuildContext context, String code) {
       backgroundColor: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFC1FFFE)),
+        side: const BorderSide(color: Color(0xFFFFB800)),
       ),
       title: const Text(
         "¡GRUPO LISTO!",
         textAlign: TextAlign.center,
-        style: TextStyle(fontFamily: 'LuckiestGuy', color: Color(0xFFC1FFFE)),
+        style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB800)),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -215,7 +215,7 @@ void _showSuccessDialog(BuildContext context, String code) {
             code,
             style: const TextStyle(
               fontSize: 40,
-              fontFamily: 'LuckiestGuy',
+              fontFamily: 'Lexend',
               color: Colors.white,
               letterSpacing: 8,
             ),

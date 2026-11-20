@@ -1,102 +1,212 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img; 
+import 'package:image/image.dart' as img;
 import 'package:universal_html/html.dart' as html;
 import 'package:http/http.dart' as http;
+import 'ffmpeg_web_stub.dart'
+    if (dart.library.js_interop) 'ffmpeg_web.dart';
+
+enum ExportFormat { gif, mp4, imageSequence }
 
 class VideoCreator {
-  static Future<String?> export(
-    List<String> imagePaths, 
-    double fps, 
-    {required Function(double) onProgress}
-  ) async {
-    if (kIsWeb) {
-      return await _exportWeb(imagePaths, fps, onProgress);
-    } else {
-      return await _exportMobile(imagePaths, fps, onProgress);
+  // ── ENTRY POINT ──────────────────────────────────────────────────────────
+  // [filename] sin extensión, ej: "mi_quack"
+  // Returns: ruta de archivo en móvil, null en web (la descarga se dispara directo)
+  // Para imageSequence en móvil retorna la ruta del ZIP
+  static Future<String?> exportAs(
+    ExportFormat format,
+    List<String> imagePaths,
+    double fps, {
+    required String filename,
+    required Function(double) onProgress,
+  }) async {
+    switch (format) {
+      case ExportFormat.gif:
+        return _exportGif(imagePaths, fps, filename, onProgress);
+      case ExportFormat.mp4:
+        return _exportMp4(imagePaths, fps, filename, onProgress);
+      case ExportFormat.imageSequence:
+        return _exportImageSequenceZip(imagePaths, filename, onProgress);
     }
   }
 
-  // --- WEB OPTIMIZADO (MÁS RÁPIDO) ---
-  static Future<String?> _exportWeb(List<String> imagePaths, double fps, Function(double) onProgress) async {
-    // Reducimos el delay para que el GIF sea fluido según los FPS
-    final int frameDelay = (100 / fps).round();
+  // ── GIF (web + mobile) ───────────────────────────────────────────────────
+  static Future<String?> _exportGif(
+    List<String> imagePaths,
+    double fps,
+    String filename,
+    Function(double) onProgress,
+  ) async {
+    final frameDelay = (100 / fps).round();
     final encoder = img.GifEncoder(delay: frameDelay, repeat: 0);
 
+    int added = 0;
     for (int i = 0; i < imagePaths.length; i++) {
-      // Actualizamos progreso
-      onProgress((i + 1) / imagePaths.length);
-      
+      onProgress((i + 1) / imagePaths.length * 0.9);
       try {
-        final response = await http.get(Uri.parse(imagePaths[i]));
-        final Uint8List bytes = response.bodyBytes;
-        
-        // Decodificamos la imagen
+        final bytes = await _fetchBytes(imagePaths[i]);
         img.Image? frame = img.decodeImage(bytes);
-        
         if (frame != null) {
-          // --- OPTIMIZACIÓN DE VELOCIDAD ---
-          // Si la imagen es muy grande, la redimensionamos a 720p máximo.
-          // Esto hace que el GIF se genere 3 veces más rápido y pese mucho menos.
-          if (frame.width > 720) {
-            frame = img.copyResize(frame, width: 720);
-          }
-          
+          if (frame.width > 720) frame = img.copyResize(frame, width: 720);
           encoder.addFrame(frame);
+          added++;
         }
       } catch (e) {
-        debugPrint("Error procesando frame $i: $e");
+        debugPrint('Error procesando frame $i: $e');
       }
     }
+
+    onProgress(1.0);
+    // Nunca producir un archivo vacío: si ningún cuadro se pudo leer, abortar.
+    if (added == 0) return null;
 
     final gifBytes = encoder.finish();
-    
-    if (gifBytes != null) {
-      final blob = html.Blob([gifBytes], 'image/gif');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute("download", "quack_${DateTime.now().millisecondsSinceEpoch}.gif")
-        ..click();
-      
-      html.Url.revokeObjectUrl(url);
+    if (gifBytes == null) return null;
+
+    final name = '$filename.gif';
+    if (kIsWeb) {
+      _downloadWeb(gifBytes, 'image/gif', name);
+      return name;
+    } else {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$name');
+      await file.writeAsBytes(gifBytes);
+      return file.path;
     }
-    
-    return null; 
   }
 
-  // --- MÓVIL OPTIMIZADO (MP4 LIGERO) ---
-  static Future<String?> _exportMobile(List<String> imagePaths, double fps, Function(double) onProgress) async {
+  // ── MP4 (web via FFmpeg.wasm · mobile via FFmpegKit) ────────────────────
+  static Future<String?> _exportMp4(
+    List<String> imagePaths,
+    double fps,
+    String filename,
+    Function(double) onProgress,
+  ) async {
+    if (kIsWeb) return _exportMp4Web(imagePaths, fps, filename, onProgress);
+    return _exportMp4Mobile(imagePaths, fps, filename, onProgress);
+  }
+
+  static Future<String?> _exportMp4Web(
+    List<String> imagePaths,
+    double fps,
+    String filename,
+    Function(double) onProgress,
+  ) async {
     try {
-      onProgress(0.1);
-      final Directory tempDir = await getTemporaryDirectory();
-      final String outputPath = '${tempDir.path}/quack_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final File listFile = File('${tempDir.path}/images.txt');
-      
-      String fileContent = "";
-      for (String path in imagePaths) {
-        fileContent += "file '$path'\nduration ${1 / fps}\n";
+      onProgress(0.05);
+      final frames = <Uint8List>[];
+      for (int i = 0; i < imagePaths.length; i++) {
+        frames.add(await _fetchBytes(imagePaths[i]));
+        onProgress(0.05 + (i + 1) / imagePaths.length * 0.2);
       }
-      if (imagePaths.isNotEmpty) fileContent += "file '${imagePaths.last}'\n";
-      await listFile.writeAsString(fileContent);
 
-      onProgress(0.3);
+      final mp4Bytes = await WebFFmpeg.framesToMp4(
+        frames,
+        fps,
+        onProgress: (p) => onProgress(0.25 + p * 0.75),
+      );
 
-      // Comando optimizado: crf 28 (buena calidad/poco peso) + preset superfast
-      final String command = "-y -f concat -safe 0 -i ${listFile.path} -c:v libx264 -crf 28 -preset superfast -pix_fmt yuv420p -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" $outputPath";
-      
-      final session = await FFmpegKit.execute(command);
-      final returnCode = await session.getReturnCode();
-      
-      onProgress(1.0);
-      return ReturnCode.isSuccess(returnCode) ? outputPath : null;
+      if (mp4Bytes == null) return null;
+      final name = '$filename.mp4';
+      _downloadWeb(mp4Bytes, 'video/mp4', name);
+      return name;
     } catch (e) {
-      debugPrint("Error exportación móvil: $e");
+      debugPrint('Error exportación MP4 web: $e');
       return null;
     }
+  }
+
+  static Future<String?> _exportMp4Mobile(
+    List<String> imagePaths,
+    double fps,
+    String filename,
+    Function(double) onProgress,
+  ) async {
+    try {
+      onProgress(0.1);
+      final tempDir = await getTemporaryDirectory();
+      final outputPath = '${tempDir.path}/$filename.mp4';
+      final listFile = File('${tempDir.path}/images_list.txt');
+
+      String content = '';
+      for (final path in imagePaths) {
+        content += "file '$path'\nduration ${1 / fps}\n";
+      }
+      if (imagePaths.isNotEmpty) content += "file '${imagePaths.last}'\n";
+      await listFile.writeAsString(content);
+      onProgress(0.3);
+
+      final cmd =
+          '-y -f concat -safe 0 -i ${listFile.path} -c:v libx264 -crf 28 -preset superfast -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" $outputPath';
+      final session = await FFmpegKit.execute(cmd);
+      final rc = await session.getReturnCode();
+
+      onProgress(1.0);
+      return ReturnCode.isSuccess(rc) ? outputPath : null;
+    } catch (e) {
+      debugPrint('Error exportación MP4: $e');
+      return null;
+    }
+  }
+
+  // ── IMAGE SEQUENCE → ZIP (web + mobile) ──────────────────────────────────
+  static Future<String?> _exportImageSequenceZip(
+    List<String> imagePaths,
+    String filename,
+    Function(double) onProgress,
+  ) async {
+    final archive = Archive();
+
+    for (int i = 0; i < imagePaths.length; i++) {
+      onProgress((i + 1) / imagePaths.length * 0.85);
+      try {
+        final bytes = await _fetchBytes(imagePaths[i]);
+        final frameName = 'frame_${(i + 1).toString().padLeft(3, '0')}.jpg';
+        archive.addFile(ArchiveFile(frameName, bytes.length, bytes));
+      } catch (e) {
+        debugPrint('Error añadiendo frame $i al ZIP: $e');
+      }
+    }
+
+    onProgress(1.0);
+    // Nunca producir un ZIP vacío (un archivo vacío igual pesa ~22 bytes):
+    // si no se añadió ningún cuadro, abortar.
+    if (archive.isEmpty) return null;
+
+    final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive) ?? []);
+    if (zipBytes.isEmpty) return null;
+
+    final zipName = '$filename.zip';
+    if (kIsWeb) {
+      _downloadWeb(zipBytes, 'application/zip', zipName);
+      return zipName;
+    } else {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$zipName');
+      await file.writeAsBytes(zipBytes);
+      return file.path;
+    }
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+  static Future<Uint8List> _fetchBytes(String path) async {
+    if (path.startsWith('http')) {
+      return (await http.get(Uri.parse(path))).bodyBytes;
+    }
+    return await File(path).readAsBytes();
+  }
+
+  static void _downloadWeb(Uint8List bytes, String mime, String filename) {
+    final blob = html.Blob([bytes], mime);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', filename)
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 }

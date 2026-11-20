@@ -44,9 +44,15 @@ dependencies:
   http: ^0.13.6
   share_plus: ^12.0.1
   url_launcher: ^6.3.2
+  # Demo local-first (T1)
   hive_ce: ^2.24.0
   hive_ce_flutter: ^2.3.4
+  # Exportación (ZIP) y utilidades compartidas
   archive: ^3.6.1
+  # Interfaz final de wip: logo SVG, QR de sala/invitación, escáner
+  flutter_svg: ^2.0.9
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
 
 
 

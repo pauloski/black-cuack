@@ -13,6 +13,7 @@ class CameraViewer extends StatefulWidget {
   final bool isPlaying;
   final XFile? lastCapturedPhoto;
   final double onionOpacity;
+  final int onionLayers;
   final int? selectedIndex;
   final List<XFile> capturedPhotos;
   final QuackProject? projectToLoad;
@@ -24,6 +25,7 @@ class CameraViewer extends StatefulWidget {
     required this.isPlaying,
     this.lastCapturedPhoto,
     required this.onionOpacity,
+    this.onionLayers = 1,
     this.selectedIndex,
     required this.capturedPhotos,
     this.projectToLoad,
@@ -55,10 +57,10 @@ class CameraViewerState extends State<CameraViewer> {
         builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
           title: const Text(
-            "🚀 FINALIZAR QUACK",
+            "GUARDAR ANIMACIÓN",
             style: TextStyle(
-              fontFamily: 'LuckiestGuy',
-              color: Color(0xFFC1FFFE),
+              fontFamily: 'Lexend',
+              color: Color(0xFFFFB800),
             ),
           ),
           content: SingleChildScrollView(
@@ -192,6 +194,15 @@ class CameraViewerState extends State<CameraViewer> {
     );
   }
 
+  Widget _buildOnionLayer(XFile photo, double opacity) {
+    return Opacity(
+      opacity: opacity.clamp(0.0, 1.0),
+      child: kIsWeb
+          ? Image.network(photo.path, fit: BoxFit.cover)
+          : Image.file(File(photo.path), fit: BoxFit.cover),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -202,21 +213,20 @@ class CameraViewerState extends State<CameraViewer> {
             CameraPreview(widget.controller),
             if (widget.showGrid && !widget.isPlaying)
               Positioned.fill(child: CustomPaint(painter: GridPainter())),
-            if (widget.lastCapturedPhoto != null &&
+            // Multi-layer onion skin: más reciente encima, más antiguo abajo
+            if (widget.onionLayers > 0 &&
+                widget.capturedPhotos.isNotEmpty &&
                 !widget.isPlaying &&
                 widget.selectedIndex == null)
-              Opacity(
-                opacity: widget.onionOpacity,
-                child: kIsWeb
-                    ? Image.network(
-                        widget.lastCapturedPhoto!.path,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.file(
-                        File(widget.lastCapturedPhoto!.path),
-                        fit: BoxFit.cover,
-                      ),
-              ),
+              for (int i = widget.onionLayers - 1; i >= 0; i--)
+                if (widget.capturedPhotos.length - 1 - i >= 0)
+                  _buildOnionLayer(
+                    widget.capturedPhotos[widget.capturedPhotos.length - 1 - i],
+                    // i=0 → capa más reciente (opacidad completa)
+                    // i=1 → capa anterior (50%)
+                    // i=2 → capa más antigua (25%)
+                    widget.onionOpacity * [1.0, 0.5, 0.25][i],
+                  ),
             if (widget.selectedIndex != null)
               Container(
                 color: Colors.black,

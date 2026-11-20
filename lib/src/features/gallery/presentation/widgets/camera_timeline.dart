@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 
 class CameraTimeline extends StatelessWidget {
   final List<XFile> capturedPhotos;
@@ -17,76 +18,114 @@ class CameraTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      margin: const EdgeInsets.only(bottom: 15),
-      child: capturedPhotos.isEmpty
-          ? const Center(
-              child: Text(
-                "LISTO PARA EL QUACK",
-                style: TextStyle(
-                  color: Colors.white24,
-                  fontSize: 10,
-                  fontFamily: 'Lexend',
-                ),
-              ),
-            )
-          : ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: capturedPhotos.length,
-              itemBuilder: (context, index) {
-                final isCurrentSelected = index == selectedIndex;
-                final isLast = index == capturedPhotos.length - 1;
-                final String path = capturedPhotos[index].path;
+    if (capturedPhotos.isEmpty) {
+      return const SizedBox(
+        height: 80,
+        child: Center(
+          child: Text(
+            'CAPTURA TU PRIMER FRAME',
+            style: TextStyle(color: Colors.white24, fontSize: 10, fontFamily: 'Lexend'),
+          ),
+        ),
+      );
+    }
 
-                return GestureDetector(
-                  onTap: () => onPhotoTap(isCurrentSelected ? null : index),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    width: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isCurrentSelected
-                            ? const Color(0xFFBC87FE)
-                            : (isLast && selectedIndex == null
-                                  ? const Color(0xFFC1FFFE)
-                                  : Colors.white10),
-                        width: isCurrentSelected ? 2 : 1,
+    return Container(
+      height: 96,
+      margin: const EdgeInsets.only(bottom: 10, top: 4),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: capturedPhotos.length + 1,
+        itemBuilder: (context, index) {
+          // "+" placeholder at end
+          if (index == capturedPhotos.length) {
+            return Container(
+              margin: const EdgeInsets.only(right: 6),
+              width: 58,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24, width: 1.5),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.add_rounded, color: Colors.white24, size: 22),
                       ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: _buildImage(path),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
+            );
+          }
+
+          final isSelected = index == selectedIndex;
+          final String path = capturedPhotos[index].path;
+
+          return GestureDetector(
+            onTap: () => onPhotoTap(isSelected ? null : index),
+            child: Container(
+              margin: const EdgeInsets.only(right: 6),
+              width: 58,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : Colors.white10,
+                          width: isSelected ? 2.5 : 1,
+                        ),
+                        boxShadow: isSelected
+                            ? [BoxShadow(
+                                color: AppColors.primary.withOpacity(0.35),
+                                blurRadius: 8, spreadRadius: 1)]
+                            : null,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: _buildImage(path),
+                      ),
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 4),
+                  Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      fontFamily: 'Lexend',
+                      fontSize: 9,
+                      color: isSelected ? AppColors.primary : Colors.white38,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
     );
   }
 
-  // --- FUNCIÓN INTELIGENTE PARA MOSTRAR LA IMAGEN ---
   Widget _buildImage(String path) {
-    // 1. Si el path empieza con http, es de la nube (Firebase)
     if (path.startsWith('http') || kIsWeb) {
       return Image.network(
         path,
         fit: BoxFit.cover,
-        // Si la imagen falla (la famosa X roja), muestra un icono de carga
-        errorBuilder: (context, error, stackTrace) => Container(
+        errorBuilder: (_, __, ___) => Container(
           color: Colors.white10,
           child: const Icon(Icons.sync, color: Colors.white24, size: 20),
         ),
       );
     }
-
-    // 2. Si es móvil y es un archivo local
     return Image.file(
       File(path),
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) =>
+      errorBuilder: (_, __, ___) =>
           const Icon(Icons.broken_image, color: Colors.white24),
     );
   }

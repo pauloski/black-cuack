@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
@@ -6,7 +8,8 @@ import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 
 class ProjectGridView extends StatefulWidget {
-  const ProjectGridView({super.key});
+  final double bottomPadding;
+  const ProjectGridView({super.key, this.bottomPadding = 0});
 
   @override
   State<ProjectGridView> createState() => _ProjectGridViewState();
@@ -28,117 +31,55 @@ class _ProjectGridViewState extends State<ProjectGridView> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.secondary,
-              strokeWidth: 2,
-            ),
+            child: CircularProgressIndicator(color: AppColors.secondary, strokeWidth: 2),
           );
         }
         final proyectos = snapshot.data ?? [];
         if (proyectos.isEmpty) {
           return const Center(
-            child: Text(
-              "¡Toca el botón de arriba para empezar!",
-              style: TextStyle(color: Colors.white10, fontSize: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.movie_filter_outlined, color: Colors.white12, size: 56),
+                SizedBox(height: 14),
+                Text('Sin proyectos todavía',
+                  style: TextStyle(color: Colors.white38, fontFamily: 'Lexend', fontSize: 15)),
+                SizedBox(height: 6),
+                Text('Crea tu primera animación',
+                  style: TextStyle(color: Colors.white24, fontFamily: 'Lexend', fontSize: 12)),
+              ],
             ),
           );
         }
 
         return GridView.builder(
+          padding: EdgeInsets.only(bottom: widget.bottomPadding),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 15,
-            mainAxisSpacing: 15,
-            childAspectRatio: 0.9,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.88,
           ),
           itemCount: proyectos.length,
           itemBuilder: (context, index) {
             final p = proyectos[index];
-            final String? previewUrl = p.photoPaths.isNotEmpty
-                ? p.photoPaths[0]
-                : null;
-
-            return GestureDetector(
-              onTap: () => Navigator.push(
+            final String? previewUrl = p.photoPaths.isNotEmpty ? p.photoPaths[0] : null;
+            return _ProjectCard(
+              project: p,
+              previewUrl: previewUrl,
+              onOpen: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => MoviePlayerPage(project: p),
-                ),
+                MaterialPageRoute(builder: (_) => MoviePlayerPage(project: p)),
               ),
-              onLongPress: () => _showOptionsDialog(context, p),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: QuackCard(
-                      title: p.name,
-                      date: "${p.date.day}/${p.date.month}",
-                      borderColor: index % 2 == 0
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                      previewPath: previewUrl,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "POR: ${p.artistName.toUpperCase()}",
-                    style: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 8,
-                      fontFamily: 'Lexend',
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              onEdit: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CameraPage(projectToLoad: p)),
               ),
+              onDelete: () => _confirmDelete(context, p),
             );
           },
         );
       },
-    );
-  }
-
-  // --- DIÁLOGOS DE GESTIÓN (MOVIDOS AQUÍ PARA LIMPIAR LA HOME) ---
-
-  void _showOptionsDialog(BuildContext context, QuackProject p) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.edit, color: AppColors.primary),
-            title: const Text(
-              'EDITAR PROYECTO',
-              style: TextStyle(color: Colors.white, fontFamily: 'Lexend'),
-            ),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CameraPage(projectToLoad: p),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete_forever, color: AppColors.danger),
-            title: const Text(
-              'BORRAR QUACK',
-              style: TextStyle(color: AppColors.danger, fontFamily: 'Lexend'),
-            ),
-            onTap: () {
-              Navigator.pop(context);
-              _confirmDelete(context, p);
-            },
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
     );
   }
 
@@ -148,65 +89,170 @@ class _ProjectGridViewState extends State<ProjectGridView> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.danger, width: 2),
+          side: const BorderSide(color: AppColors.danger, width: 1.5),
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
-          "¿BORRAR QUACK?",
-          style: TextStyle(fontFamily: 'LuckiestGuy', color: AppColors.danger),
-          textAlign: TextAlign.center,
-        ),
+        title: const Text('¿ELIMINAR?',
+          style: TextStyle(fontFamily: 'Lexend', color: AppColors.danger, fontSize: 16),
+          textAlign: TextAlign.center),
         content: Text(
-          "¿Estás seguro de que quieres eliminar '${project.name}'?\nEsta acción limpiará todas las fotos de la nube. 🧹",
+          "'${project.name}' será eliminado permanentemente.",
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontFamily: 'Lexend',
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white54, fontFamily: 'Lexend', fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "CANCELAR",
-              style: TextStyle(color: Colors.white38),
-            ),
+            child: const Text('CANCELAR', style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
-              // 1. Mostramos un indicador de carga rápido para el borrado
-              debugPrint("🦆 Borrando fotos y datos...");
-
-              // 2. Llamamos al nuevo método con los DOS parámetros necesarios
-              await _projectService.deleteProjectFull(
-                project.id,
-                project
-                    .photoPaths, // ✅ Ahora pasamos la lista de fotos para limpiar Storage
-              );
-
+              await _projectService.deleteProjectFull(project.id, project.photoPaths);
               if (mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("¡Charca limpiada con éxito! 🧹🦆"),
-                    backgroundColor: Colors.redAccent,
-                  ),
+                  const SnackBar(content: Text('Proyecto eliminado'),
+                    backgroundColor: AppColors.danger),
                 );
               }
             },
-            child: const Text(
-              "BORRAR",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            child: const Text('ELIMINAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Project card with overlay action buttons ──────────────────────────────────
+class _ProjectCard extends StatelessWidget {
+  final QuackProject project;
+  final String? previewUrl;
+  final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProjectCard({
+    required this.project,
+    required this.previewUrl,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onOpen,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Card body
+          Column(
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    image: (previewUrl != null && previewUrl!.isNotEmpty)
+                        ? DecorationImage(
+                            image: kIsWeb
+                                ? NetworkImage(previewUrl!) as ImageProvider
+                                : FileImage(File(previewUrl!)),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: previewUrl == null || previewUrl!.isEmpty
+                      ? const Center(
+                          child: Icon(Icons.movie_filter_rounded,
+                            color: Colors.white12, size: 36))
+                      : null,
+                ),
               ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontFamily: 'Lexend',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      '${project.date.day}/${project.date.month}',
+                      style: const TextStyle(
+                        color: Colors.white30,
+                        fontFamily: 'Lexend',
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Overlay: edit + delete buttons on top-right of thumbnail
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Row(
+              children: [
+                _OverlayBtn(
+                  icon: Icons.edit_rounded,
+                  color: AppColors.primary,
+                  onTap: onEdit,
+                ),
+                const SizedBox(width: 5),
+                _OverlayBtn(
+                  icon: Icons.delete_rounded,
+                  color: AppColors.danger,
+                  onTap: onDelete,
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OverlayBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _OverlayBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.65),
+          shape: BoxShape.circle,
+          border: Border.all(color: color.withOpacity(0.5), width: 1),
+        ),
+        child: Icon(icon, color: color, size: 15),
       ),
     );
   }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
+
 // --- IMPORTACIONES DE PÁGINAS ---
 import 'package:blackcuack_studio/src/features/auth/presentation/splash_page.dart';
 import 'package:blackcuack_studio/src/features/auth/presentation/login_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/profile_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/my_groups_page.dart';
+import 'package:blackcuack_studio/src/features/remote/presentation/join_session_page.dart';
 
 // ✅ LLAVE MAESTRA DE NAVEGACIÓN GLOBAL
 // Esta llave permite controlar el Navigator desde cualquier parte del código sin depender del "context"
@@ -44,16 +47,16 @@ class BlackCuackApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0E0E0E),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFC1FFFE),
+          primary: Color(0xFFFFB800),
           secondary: Color(0xFFBC87FE),
           tertiary: Color(0xFFF3FFCA),
           surface: Color(0xFF1A1A1A),
         ),
         textTheme: const TextTheme(
           displayLarge: TextStyle(
-            color: Color(0xFFC1FFFE),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontFamily: 'LuckiestGuy',
+            fontFamily: 'Lexend',
           ),
           bodyMedium: TextStyle(color: Color(0xFFADAAAA), fontFamily: 'Lexend'),
         ),
@@ -68,6 +71,9 @@ class BlackCuackApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/profile': (context) => const ProfilePage(),
         '/my_groups': (context) => const MyGroupsPage(),
+        // IGNITE (cámara remota): ruta oculta tras el flag.
+        if (kEnableIgniteFeatures)
+          '/join': (context) => const JoinSessionPage(),
       },
     );
   }

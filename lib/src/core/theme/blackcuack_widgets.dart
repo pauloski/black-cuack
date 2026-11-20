@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const background = Color(0xFF0E0E0E);
   static const surface    = Color(0xFF1A1A1A);
-  static const primary    = Color(0xFFC1FFFE);
+  static const primary    = Color(0xFFFFB800);
   static const secondary  = Color(0xFFBC87FE);
+  static const green      = Color(0xFF4CAF50);
   static const tertiary   = Color(0xFFF3FFCA);
   static const danger     = Color(0xFFFF4D4D);
 }
@@ -40,7 +41,7 @@ class QuackButton extends StatelessWidget {
           text,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'LuckiestGuy',
+            fontFamily: 'Lexend',
             fontSize: 18,
             color: Colors.black,
           ),
