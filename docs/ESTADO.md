@@ -73,8 +73,42 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 
 - **T0 CERRADO:** demo publicada en **https://demo.blackquack.cl** (y `blackquack-demo.pages.dev`) con la **interfaz final** de `wip` y la **exportación GIF funcionando** en web (12 cuadros verificados por Paulo). Vía de publicación operativa (`scripts/deploy_demo.sh`), `noindex` activo en ambos hostnames.
 
+## Estado de T2a (Bloque A) — local-first
+
+- **En producción (`demo.blackquack.cl`):** ciclo personal completo **local-first** (Hive, cuadros como bytes JPEG ≤1280): entrar sin email, capturar, guardar, listar con miniatura (`Image.memory`), reabrir/añadir, reproducir y borrar — **sin Firebase**. Exportación GIF web OK; ZIP/MP4 "en corrección" en web. IGNITE oculto tras `kEnableIgniteFeatures`.
+- **Compresión al capturar** (cola en segundo plano, no bloquea el obturador) con respaldo al guardar; `pruneOrphanFrames(olderThan:24h)` al arranque.
+- **En preview, pendiente de prueba en Android** (`t2a-preview.blackquack-demo.pages.dev`, rama `feat/hdu1-draft`): **borrador HDU1 auto-persistido** (`isDraft`) e **indicador `?debug=1`** de ms/cuadro. Al aprobar → merge a `demo/semana-1` + deploy producción.
+- **Prioridad de validación/métricas: Android** (MVP a Google Play), no iPad/Safari.
+- Pruebas: 15 en verde (frame_codec, repo Hive+LazyBox, save-flow, borrador, prune 24h, in-memory).
+
+## Auditoría HDU1–5 vs `docs/HISTORIAS_DE_USUARIO.md` (2026-11-21)
+
+Leyenda: ✅ hecho · ⚠️ parcial · ❌ falta · 🤖 solo cumplible en **nativo Android**.
+
+**HDU1 · Papel cebolla, sin internet**
+- ✅ 1–3 cuadros anteriores con opacidad ajustable (`camera_viewer.dart:242-253` + slider).
+- 🤖❌ Fijar exposición, enfoque y balance de blancos (controles de cámara: nativo Android; en web son limitados/no fiables).
+- ✅ Cada cuadro se guarda al instante en el dispositivo; en modo avión no se pierde (compresión al capturar → repo local).
+- ✅ Reabre en el último cuadro tras un cierre (borrador auto-persistido; reabrible desde "Mis proyectos"). *(en preview)*
+
+**HDU2 · Orientación vertical/horizontal** — ❌ Falta todo (elección por proyecto, respeto en cámara/timeline, export). Cross-platform.
+
+**HDU3 · Línea de tiempo y FPS**
+- ⚠️ Reordenar / duplicar / borrar con deshacer: borrar ✅ y deshacer-última-captura ✅; **reordenar, duplicar y deshacer-borrado faltan** (→ T7).
+- ⚠️ FPS 1–30 con atajos 6/8/12/15/24: slider **1–24 sin atajos** (→ T7).
+- ⚠️ Bucle desde cualquier cuadro: hay bucle desde 0; **"desde cualquier cuadro" falta** (→ T7).
+
+**HDU4 · Export MP4/GIF/ZIP**
+- ⚠️ Exporta sin internet: **GIF ✅** (web+móvil); **ZIP** nativo ✅ pero "en corrección" en web (→ T5); **🤖 MP4** nativo (MediaCodec) pendiente post-demo.
+- ❌ 720p con marca de agua (gratis) / 1080p sin marca (pago).
+- ⚠️ Sin ubicación ni metadatos: los cuadros se **recodifican a JPEG** (descarta EXIF), pero no está verificado explícitamente para geolocalización.
+- ❌ En aula, exportar fuera de la app lo habilita el docente (capa de aula).
+
+**HDU5 · Versiones firmadas por autor** — ❌ Falta la función (guardar versión, historial, restaurar, autor/origen, ejercicios). **Base lista:** el repositorio **ya comparte cuadros entre proyectos/versiones sin duplicar** (→ T9).
+
 ## Pendientes
 
+- **Promover a producción el Bloque A+** (borrador HDU1 + `?debug`) tras tu prueba en **Android** del preview `t2a-preview` (rama `feat/hdu1-draft`).
 - **Configurar Cloudflare Access** (`demo.blackquack.cl` y `blackquack-demo.pages.dev`) **antes de compartir la demo fuera del equipo.**
 - **Íconos `_rounded` en blanco** (inicio, cámara, exportar): causados por el tree-shaking de íconos del build web, que dejaba una fuente MaterialIcons de 16 KB sin los glifos de las variantes `_rounded`. **Corregido y publicado** con `--no-tree-shake-icons` en `scripts/deploy_demo.sh` (fuente completa de 1,6 MB; verificado en vivo).
 - **Investigar por qué el tree-shaking de íconos excluye las variantes `_rounded`, para volver al build optimizado** (hoy se publica con la fuente completa, +1,6 MB). Mientras tanto, la demo lleva `noindex`/`X-Robots-Tag: noindex` para que no la indexen los buscadores, pero el enlace sigue siendo accesible para quien lo tenga.
@@ -82,3 +116,4 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 ## 4. Bitácora
 
 - **2026-11-20** — Reorientación a herramienta de aula. Auditoría git (trabajo ya protegido en `wip`; docs consolidados en `main`), creada `demo/semana-1`. Verificada la tabla de HDU contra el código y corregidas HDU4 y HDU13 en `docs/HISTORIAS_DE_USUARIO.md`. Diagnóstico de exportación, miniaturas y modo invitado con archivo:línea. Plan de la semana aprobado. Creados `docs/decisiones/0001-modo-local-demo.md` y `scripts/deploy_demo.sh` (pendiente T0).
+- **2026-11-20/21** — T0 cerrado (demo en producción con interfaz final de `wip` + GIF web + íconos completos). Merge `wip`→`demo/semana-1` con IGNITE tras flag. **Bloque A (T2a) completo y en producción**: repositorio local-first (Hive), compresión al capturar, ciclo personal sin Firebase, banner de almacén efímero, gate `hasCloudAccount`. **En preview pendiente de prueba (Android):** borrador HDU1 (`isDraft`) + `?debug`. Auditoría HDU1–5 arriba. **Próximo:** Bloque B (T2b: login sin email, timeout del anónimo, doc offline).
