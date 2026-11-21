@@ -5,8 +5,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:blackcuack_studio/main.dart' show navigatorKey;
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
+import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
+import 'package:blackcuack_studio/src/core/utils/session_image.dart';
 import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/remote/data/remote_session_service.dart';
@@ -36,6 +41,11 @@ class _CameraPageState extends State<CameraPage> {
       GlobalKey<CameraViewerState>();
 
   List<XFile> capturedPhotos = [];
+  // Id del cuadro en el repo local, alineado con capturedPhotos. null = cuadro
+  // nuevo (aún sin guardar) → se comprime y se agrega al guardar.
+  List<String?> _frameIds = [];
+  // Blobs/temp creados al reabrir, para revocarlos al salir (evita fugas).
+  final List<SessionImage> _sessionImages = [];
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -60,10 +70,40 @@ class _CameraPageState extends State<CameraPage> {
     super.initState();
     _initCamera();
     if (isEditing) {
-      capturedPhotos = widget.projectToLoad!.photoPaths
-          .map((path) => XFile(path))
-          .toList();
-      if (capturedPhotos.isNotEmpty) lastCapturedPhoto = capturedPhotos.last;
+      _hydrateFromProject();
+    }
+  }
+
+  /// Reabre un proyecto. Si es **local**, hidrata los cuadros desde el repo
+  /// (bytes → XFile de sesión) conservando sus ids. Si no está en el repo
+  /// (proyecto de nube con URLs), usa las rutas tal cual.
+  Future<void> _hydrateFromProject() async {
+    final project = widget.projectToLoad!;
+    final photos = <XFile>[];
+    final ids = <String?>[];
+    for (final id in project.photoPaths) {
+      final bytes = await projectRepository.loadFrameBytes(id);
+      if (bytes == null) continue;
+      final s = await sessionImageFromBytes(bytes);
+      _sessionImages.add(s);
+      photos.add(s.file);
+      ids.add(id);
+    }
+    if (!mounted) return;
+    if (photos.isNotEmpty) {
+      setState(() {
+        capturedPhotos = photos;
+        _frameIds = ids;
+        lastCapturedPhoto = photos.last;
+      });
+    } else {
+      // Proyecto no local (URLs de nube): comportamiento anterior.
+      setState(() {
+        capturedPhotos =
+            project.photoPaths.map((path) => XFile(path)).toList();
+        _frameIds = List<String?>.filled(project.photoPaths.length, null);
+        if (capturedPhotos.isNotEmpty) lastCapturedPhoto = capturedPhotos.last;
+      });
     }
   }
 
@@ -87,6 +127,9 @@ class _CameraPageState extends State<CameraPage> {
     controller?.dispose();
     _remoteSub?.cancel();
     if (_sessionCode != null) _remoteService.closeSession(_sessionCode!);
+    for (final s in _sessionImages) {
+      s.revoke();
+    }
     super.dispose();
   }
 
@@ -97,6 +140,7 @@ class _CameraPageState extends State<CameraPage> {
       setState(() {
         lastCapturedPhoto = file;
         capturedPhotos.add(file);
+        _frameIds.add(null); // cuadro nuevo: sin id hasta guardar
         selectedIndex = null;
       });
     } catch (e) {
@@ -130,9 +174,11 @@ class _CameraPageState extends State<CameraPage> {
     setState(() {
       if (selectedIndex != null) {
         capturedPhotos.removeAt(selectedIndex!);
+        if (selectedIndex! < _frameIds.length) _frameIds.removeAt(selectedIndex!);
         selectedIndex = null;
       } else {
         capturedPhotos.removeLast();
+        if (_frameIds.isNotEmpty) _frameIds.removeLast();
       }
       lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
     });
@@ -146,6 +192,86 @@ class _CameraPageState extends State<CameraPage> {
       return;
     }
     _cameraViewerKey.currentState?.showSaveDialog(context);
+  }
+
+  /// Guarda el proyecto en el **repositorio local** (sin Firebase). Conserva los
+  /// ids de los cuadros existentes (no los recomprime) y comprime solo los
+  /// nuevos. Luego vuelve a Inicio.
+  Future<void> _saveLocally({
+    required String name,
+    required String artist,
+    bool isPublished = false,
+    String? groupCode,
+  }) async {
+    QuackSaveHelper.showLoadingQuack();
+    try {
+      final frames = <CapturedFrame>[];
+      for (int i = 0; i < capturedPhotos.length; i++) {
+        final id = i < _frameIds.length ? _frameIds[i] : null;
+        if (id != null) {
+          frames.add(CapturedFrame.existing(id));
+        } else {
+          frames.add(CapturedFrame.raw(await capturedPhotos[i].readAsBytes()));
+        }
+      }
+      final projId = isEditing
+          ? widget.projectToLoad!.id
+          : DateTime.now().millisecondsSinceEpoch.toString();
+
+      await saveCapturedProject(
+        projectRepository,
+        id: projId,
+        name: name,
+        artistName: artist,
+        frames: frames,
+        isPublished: isPublished,
+        workshopCode: groupCode,
+      );
+
+      _quackSavedToast();
+    } catch (e) {
+      debugPrint('⚠️ Error al guardar localmente: $e');
+      _quackSaveErrorToast();
+    } finally {
+      // Salida atómica a Inicio (igual que el guardado anterior).
+      final nav = navigatorKey.currentState;
+      if (nav != null) {
+        nav.pop(); // cierra el patito de carga
+        await Future.delayed(const Duration(milliseconds: 300));
+        nav.pushNamedAndRemoveUntil('/home', (route) => false);
+      }
+    }
+  }
+
+  void _quackSavedToast() {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+    final ephemeral = repositoryIsEphemeral;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(
+          ephemeral
+              ? 'Guardado temporal: este navegador no permite guardar; se perderá al cerrar.'
+              : 'Guardado en este dispositivo 🦆',
+          style: const TextStyle(fontFamily: 'Lexend'),
+        ),
+        backgroundColor:
+            ephemeral ? const Color(0xFFFF4D4D) : const Color(0xFF3CCF7A),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _quackSaveErrorToast() {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      const SnackBar(
+        content: Text('No se pudo guardar. Intenta de nuevo.',
+            style: TextStyle(fontFamily: 'Lexend')),
+        backgroundColor: Color(0xFFFF4D4D),
+      ),
+    );
   }
 
   void _exportVideo() {
@@ -435,6 +561,7 @@ class _CameraPageState extends State<CameraPage> {
           setState(() {
             final xf = XFile(url);
             capturedPhotos.add(xf);
+            _frameIds.add(null);
             lastCapturedPhoto = xf;
           });
         }
@@ -612,6 +739,7 @@ class _CameraPageState extends State<CameraPage> {
           selectedIndex: selectedIndex,
           capturedPhotos: capturedPhotos,
           projectToLoad: widget.projectToLoad,
+          onSave: _saveLocally,
         ),
         Positioned(left: 8, top: 16, bottom: 16, child: _buildLeftPanel()),
         Positioned(right: 8, top: 0, bottom: 0, child: _buildRightPanel()),

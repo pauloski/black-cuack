@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
-import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_player_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 
@@ -16,22 +16,27 @@ class ProjectGridView extends StatefulWidget {
 }
 
 class _ProjectGridViewState extends State<ProjectGridView> {
-  late final ProjectService _projectService;
+  late Future<List<QuackProject>> _future;
 
   @override
   void initState() {
     super.initState();
-    _projectService = ProjectService();
+    _future = projectRepository.loadProjects();
+  }
+
+  void _reload() {
+    setState(() => _future = projectRepository.loadProjects());
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<QuackProject>>(
-      stream: _projectService.getProjectsStream(),
+    return FutureBuilder<List<QuackProject>>(
+      future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: AppColors.secondary, strokeWidth: 2),
+            child: CircularProgressIndicator(
+                color: AppColors.secondary, strokeWidth: 2),
           );
         }
         final proyectos = snapshot.data ?? [];
@@ -40,13 +45,20 @@ class _ProjectGridViewState extends State<ProjectGridView> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.movie_filter_outlined, color: Colors.white12, size: 56),
+                Icon(Icons.movie_filter_outlined,
+                    color: Colors.white12, size: 56),
                 SizedBox(height: 14),
                 Text('Sin proyectos todavía',
-                  style: TextStyle(color: Colors.white38, fontFamily: 'Lexend', fontSize: 15)),
+                    style: TextStyle(
+                        color: Colors.white38,
+                        fontFamily: 'Lexend',
+                        fontSize: 15)),
                 SizedBox(height: 6),
                 Text('Crea tu primera animación',
-                  style: TextStyle(color: Colors.white24, fontFamily: 'Lexend', fontSize: 12)),
+                    style: TextStyle(
+                        color: Colors.white24,
+                        fontFamily: 'Lexend',
+                        fontSize: 12)),
               ],
             ),
           );
@@ -63,18 +75,23 @@ class _ProjectGridViewState extends State<ProjectGridView> {
           itemCount: proyectos.length,
           itemBuilder: (context, index) {
             final p = proyectos[index];
-            final String? previewUrl = p.photoPaths.isNotEmpty ? p.photoPaths[0] : null;
+            final String? firstId =
+                p.photoPaths.isNotEmpty ? p.photoPaths.first : null;
             return _ProjectCard(
               project: p,
-              previewUrl: previewUrl,
+              previewFrameId: firstId,
               onOpen: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => MoviePlayerPage(project: p)),
               ),
-              onEdit: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => CameraPage(projectToLoad: p)),
-              ),
+              onEdit: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => CameraPage(projectToLoad: p)),
+                );
+                _reload();
+              },
               onDelete: () => _confirmDelete(context, p),
             );
           },
@@ -93,34 +110,41 @@ class _ProjectGridViewState extends State<ProjectGridView> {
           borderRadius: BorderRadius.circular(20),
         ),
         title: const Text('¿ELIMINAR?',
-          style: TextStyle(fontFamily: 'Lexend', color: AppColors.danger, fontSize: 16),
-          textAlign: TextAlign.center),
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.danger, fontSize: 16),
+            textAlign: TextAlign.center),
         content: Text(
           "'${project.name}' será eliminado permanentemente.",
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white54, fontFamily: 'Lexend', fontSize: 13),
+          style: const TextStyle(
+              color: Colors.white54, fontFamily: 'Lexend', fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCELAR', style: TextStyle(color: Colors.white38)),
+            child: const Text('CANCELAR',
+                style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
-              await _projectService.deleteProjectFull(project.id, project.photoPaths);
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Proyecto eliminado'),
+              await projectRepository.deleteProject(project.id);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Proyecto eliminado'),
                     backgroundColor: AppColors.danger),
-                );
-              }
+              );
+              _reload();
             },
-            child: const Text('ELIMINAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('ELIMINAR',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -131,14 +155,14 @@ class _ProjectGridViewState extends State<ProjectGridView> {
 // ── Project card with overlay action buttons ──────────────────────────────────
 class _ProjectCard extends StatelessWidget {
   final QuackProject project;
-  final String? previewUrl;
+  final String? previewFrameId;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ProjectCard({
     required this.project,
-    required this.previewUrl,
+    required this.previewFrameId,
     required this.onOpen,
     required this.onEdit,
     required this.onDelete,
@@ -151,29 +175,16 @@ class _ProjectCard extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Card body
           Column(
             children: [
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    image: (previewUrl != null && previewUrl!.isNotEmpty)
-                        ? DecorationImage(
-                            image: kIsWeb
-                                ? NetworkImage(previewUrl!) as ImageProvider
-                                : FileImage(File(previewUrl!)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    child: _Thumbnail(frameId: previewFrameId),
                   ),
-                  child: previewUrl == null || previewUrl!.isEmpty
-                      ? const Center(
-                          child: Icon(Icons.movie_filter_rounded,
-                            color: Colors.white12, size: 36))
-                      : null,
                 ),
               ),
               const SizedBox(height: 6),
@@ -206,8 +217,6 @@ class _ProjectCard extends StatelessWidget {
               ),
             ],
           ),
-
-          // Overlay: edit + delete buttons on top-right of thumbnail
           Positioned(
             top: 6,
             right: 6,
@@ -233,12 +242,40 @@ class _ProjectCard extends StatelessWidget {
   }
 }
 
+/// Miniatura del primer cuadro, leída como **bytes** del repo local
+/// (`Image.memory`), para que persista tras recargar (sin depender de CORS).
+class _Thumbnail extends StatelessWidget {
+  final String? frameId;
+  const _Thumbnail({required this.frameId});
+
+  @override
+  Widget build(BuildContext context) {
+    final id = frameId;
+    if (id == null) return _placeholder();
+    return FutureBuilder<Uint8List?>(
+      future: projectRepository.loadFrameBytes(id),
+      builder: (context, snap) {
+        final bytes = snap.data;
+        if (bytes == null) return _placeholder();
+        return Image.memory(bytes, fit: BoxFit.cover,
+            gaplessPlayback: true);
+      },
+    );
+  }
+
+  Widget _placeholder() => const Center(
+        child: Icon(Icons.movie_filter_rounded,
+            color: Colors.white12, size: 36),
+      );
+}
+
 class _OverlayBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _OverlayBtn({required this.icon, required this.color, required this.onTap});
+  const _OverlayBtn(
+      {required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -248,9 +285,9 @@ class _OverlayBtn extends StatelessWidget {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.65),
+          color: Colors.black.withValues(alpha: 0.65),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.5), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
         ),
         child: Icon(icon, color: color, size: 15),
       ),

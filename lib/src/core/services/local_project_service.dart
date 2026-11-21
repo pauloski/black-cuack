@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_repository.dart';
@@ -37,13 +39,25 @@ Future<QuackProject> saveCapturedProject(
   String? workshopCode,
 }) async {
   final ids = <String>[];
+  final sw = Stopwatch();
+  int newCount = 0;
   for (final f in frames) {
     if (!f.isNew) {
       ids.add(f.existingId!);
     } else {
+      sw.start();
       final jpeg = compressFrameJpeg(f.bytes!);
+      sw.stop();
+      newCount++;
       ids.add(await repo.addFrame(jpeg));
     }
+  }
+  if (newCount > 0) {
+    // Medición para decidir compresión al capturar vs al guardar (umbral 300 ms/cuadro).
+    debugPrint(
+      '⏱️ compresión: ${sw.elapsedMilliseconds}ms / $newCount cuadros nuevos '
+      '= ${(sw.elapsedMilliseconds / newCount).toStringAsFixed(1)} ms/cuadro',
+    );
   }
 
   final project = QuackProject(

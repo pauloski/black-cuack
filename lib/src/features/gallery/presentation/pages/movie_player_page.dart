@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 
 class MoviePlayerPage extends StatefulWidget {
@@ -18,21 +20,38 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
   final double _maxFps = 24.0;
   final double _minFps = 2.0;
 
+  // Cuadros locales (bytes). Si está vacío, el proyecto es de nube (URLs).
+  List<Uint8List> _frames = [];
+  bool _loading = true;
+
+  int get _frameCount =>
+      _frames.isNotEmpty ? _frames.length : widget.project.photoPaths.length;
+
   @override
   void initState() {
     super.initState();
+    _loadFrames();
+  }
+
+  Future<void> _loadFrames() async {
+    final frames = await projectRepository.loadFrames(widget.project.id);
+    if (!mounted) return;
+    setState(() {
+      _frames = frames;
+      _loading = false;
+    });
     _startAnimation();
   }
 
   void _startAnimation() {
     _timer?.cancel();
+    if (_frameCount == 0) return;
     _timer = Timer.periodic(Duration(milliseconds: (1000 / _fps).round()), (
       timer,
     ) {
       if (mounted && _isPlaying) {
         setState(() {
-          _currentFrame =
-              (_currentFrame + 1) % widget.project.photoPaths.length;
+          _currentFrame = (_currentFrame + 1) % _frameCount;
         });
       }
     });
@@ -54,17 +73,25 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
         children: [
           // 🎞️ EL PROYECTOR
           Center(
-            child: photos.isEmpty
-                ? const Text(
-                    "Sin fotos",
-                    style: TextStyle(color: Colors.white24),
-                  )
-                : Image.network(
-                    photos[_currentFrame],
-                    key: ValueKey(photos[_currentFrame]),
-                    fit: BoxFit.contain,
-                    gaplessPlayback: true,
-                  ),
+            child: _loading
+                ? const CircularProgressIndicator(
+                    color: Color(0xFFFFB800), strokeWidth: 2)
+                : _frameCount == 0
+                    ? const Text("Sin fotos",
+                        style: TextStyle(color: Colors.white24))
+                    : _frames.isNotEmpty
+                        ? Image.memory(
+                            _frames[_currentFrame],
+                            key: ValueKey(_currentFrame),
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          )
+                        : Image.network(
+                            photos[_currentFrame],
+                            key: ValueKey(photos[_currentFrame]),
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          ),
           ),
 
           // 🎭 INTERFAZ (UI)
@@ -144,7 +171,7 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
         border: Border.all(color: Colors.white10),
       ),
       child: Text(
-        "${_fps.round()} FPS | FOTO: ${_currentFrame + 1}/${widget.project.photoPaths.length}",
+        "${_fps.round()} FPS | FOTO: ${_currentFrame + 1}/$_frameCount",
         style: const TextStyle(
           color: Color(0xFFFFB800),
           fontFamily: 'Lexend',

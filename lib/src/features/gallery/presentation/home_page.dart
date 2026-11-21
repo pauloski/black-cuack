@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/core/widgets/ephemeral_banner.dart';
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/group_details_page.dart';
@@ -15,7 +16,11 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
+      body: Column(
+        children: [
+          const EphemeralStorageBanner(),
+          Expanded(
+            child: Stack(
         fit: StackFit.expand,
         children: [
           // GIF: la escena está en el centro del frame (1280×720).
@@ -130,6 +135,9 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
             ),
           ),
         ],

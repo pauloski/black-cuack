@@ -3,9 +3,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:blackcuack_studio/src/core/config/cloud_access.dart';
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
-import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
 
 class CameraViewer extends StatefulWidget {
   final CameraController controller;
@@ -17,6 +17,12 @@ class CameraViewer extends StatefulWidget {
   final int? selectedIndex;
   final List<XFile> capturedPhotos;
   final QuackProject? projectToLoad;
+  final Future<void> Function({
+    required String name,
+    required String artist,
+    bool isPublished,
+    String? groupCode,
+  })? onSave;
 
   const CameraViewer({
     super.key,
@@ -29,6 +35,7 @@ class CameraViewer extends StatefulWidget {
     this.selectedIndex,
     required this.capturedPhotos,
     this.projectToLoad,
+    this.onSave,
   });
 
   @override
@@ -81,21 +88,45 @@ class CameraViewerState extends State<CameraViewer> {
                   readOnly: isEditing,
                 ),
                 const SizedBox(height: 20),
-                _buildGroupSelector(
-                  selectedGroupCode,
-                  (val) => setModalState(() => selectedGroupCode = val),
-                ),
-                const SizedBox(height: 10),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    "COMPARTIR EN GRUPO",
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                if (hasCloudAccount) ...[
+                  _buildGroupSelector(
+                    selectedGroupCode,
+                    (val) => setModalState(() => selectedGroupCode = val),
                   ),
-                  value: isPublished,
-                  activeColor: const Color(0xFFBC87FE),
-                  onChanged: (val) => setModalState(() => isPublished = val),
-                ),
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      "COMPARTIR EN GRUPO",
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    value: isPublished,
+                    activeColor: const Color(0xFFBC87FE),
+                    onChanged: (val) => setModalState(() => isPublished = val),
+                  ),
+                ] else
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.cloud_off_rounded,
+                            color: Colors.white38, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Compartir en grupo es una función colaborativa: "
+                            "necesitas conexión y una cuenta.",
+                            style:
+                                TextStyle(color: Colors.white38, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -113,20 +144,14 @@ class CameraViewerState extends State<CameraViewer> {
 
                 Navigator.pop(context); // Cierra diálogo texto
 
-                QuackSaveHelper.saveAndExit(
-                  project: QuackProject(
-                    id: isEditing
-                        ? widget.projectToLoad!.id
-                        : DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameController.text.trim(),
-                    artistName: artistController.text.trim(),
-                    photoPaths: widget.capturedPhotos
-                        .map((f) => f.path)
-                        .toList(),
-                    date: DateTime.now(),
-                    isPublished: isPublished,
-                    workshopCode: selectedGroupCode,
-                  ),
+                // Guardado local (sin Firebase). El compartir en grupo solo
+                // viaja si hay cuenta de nube real (ver más abajo el gate).
+                final canCloud = hasCloudAccount;
+                widget.onSave?.call(
+                  name: nameController.text.trim(),
+                  artist: artistController.text.trim(),
+                  isPublished: canCloud && isPublished,
+                  groupCode: canCloud ? selectedGroupCode : null,
                 );
               },
               child: const Text(
