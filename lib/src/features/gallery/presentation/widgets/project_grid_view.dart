@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
+    show activeProfileId;
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_player_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
@@ -41,7 +43,10 @@ class _ProjectGridViewState extends State<ProjectGridView> {
         }
         // Un borrador con 0 cuadros no aparece; las versiones (parentId) tampoco.
         final proyectos = (snapshot.data ?? [])
-            .where((p) => p.photoPaths.isNotEmpty && p.parentId == null)
+            .where((p) =>
+                p.photoPaths.isNotEmpty &&
+                p.parentId == null &&
+                p.ownerProfileId == activeProfileId)
             .toList();
         if (proyectos.isEmpty) {
           return const Center(

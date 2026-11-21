@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
+    show activeProfileId;
 import 'package:blackcuack_studio/src/features/gallery/domain/project_repository.dart';
 
 /// Un cuadro al momento de guardar: o ya existe en el repo (se reusa su id,
@@ -72,6 +74,7 @@ Future<QuackProject> saveCapturedProject(
     workshopCode: workshopCode,
     isDraft: isDraft,
     aspect: aspect,
+    ownerProfileId: activeProfileId,
   );
   return repo.saveProject(project);
 }
@@ -96,6 +99,7 @@ Future<QuackProject> saveDraft(
     date: DateTime.now(),
     isDraft: true,
     aspect: aspect,
+    ownerProfileId: activeProfileId,
   );
   return repo.saveProject(project);
 }
@@ -119,6 +123,7 @@ Future<QuackProject> saveVersion(
     date: DateTime.now(),
     aspect: aspect,
     parentId: parentId,
+    ownerProfileId: activeProfileId,
   );
   return repo.saveProject(project);
 }

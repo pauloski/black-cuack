@@ -6,6 +6,8 @@ import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/core/widgets/ephemeral_banner.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/projection_page.dart';
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
+    show activeProfileId;
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/group_details_page.dart';
@@ -903,7 +905,10 @@ class _ProjectsListPage extends StatelessWidget {
             tooltip: 'Proyectar todo',
             onPressed: () async {
               final all = (await projectRepository.loadProjects())
-                  .where((p) => p.photoPaths.isNotEmpty && p.parentId == null)
+                  .where((p) =>
+                      p.photoPaths.isNotEmpty &&
+                      p.parentId == null &&
+                      p.ownerProfileId == activeProfileId)
                   .toList();
               if (!context.mounted || all.isEmpty) return;
               Navigator.of(context).push(MaterialPageRoute(

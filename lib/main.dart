@@ -12,6 +12,8 @@ import 'package:blackcuack_studio/src/features/gallery/presentation/pages/profil
 import 'package:blackcuack_studio/src/features/gallery/presentation/home_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/my_groups_page.dart';
 import 'package:blackcuack_studio/src/features/remote/presentation/join_session_page.dart';
+import 'package:blackcuack_studio/src/features/profile/presentation/profile_picker_page.dart';
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart';
 
 // ✅ LLAVE MAESTRA DE NAVEGACIÓN GLOBAL
 // Esta llave permite controlar el Navigator desde cualquier parte del código sin depender del "context"
@@ -24,6 +26,7 @@ void main() async {
   // el arranque si falla.
   await initRepositories();
   await requestPersistentStorage();
+  await ProfileService.loadActive();
 
   // Firebase es opcional para la demo (local-first): si no enciende, la app
   // sigue funcionando sin conexión.
@@ -79,6 +82,7 @@ class BlackCuackApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/profile': (context) => const ProfilePage(),
         '/my_groups': (context) => const MyGroupsPage(),
+        '/profiles': (context) => const ProfilePickerPage(),
         // IGNITE (cámara remota): ruta oculta tras el flag.
         if (kEnableIgniteFeatures)
           '/join': (context) => const JoinSessionPage(),

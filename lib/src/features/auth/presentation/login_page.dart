@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     // El intento anónimo corre en segundo plano con timeout; la entrada NO lo
     // espera (así funciona sin conexión y no se cuelga).
     unawaited(_tryAnonymous());
-    Navigator.pushReplacementNamed(context, '/home');
+    Navigator.pushReplacementNamed(context, '/profiles');
   }
 
   Future<void> _tryAnonymous() async {

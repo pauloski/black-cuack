@@ -15,6 +15,8 @@ class QuackProject {
   // Si no es null, este registro es una **versión** del proyecto [parentId]
   // (comparte cuadros por id, no se duplica el almacenamiento).
   final String? parentId;
+  // Perfil local dueño (HDU6): cada perfil ve solo sus proyectos. '' = general.
+  final String ownerProfileId;
 
   QuackProject({
     required this.id,
@@ -28,6 +30,7 @@ class QuackProject {
     this.isDraft = false,
     this.aspect = '9:16',
     this.parentId,
+    this.ownerProfileId = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -42,6 +45,7 @@ class QuackProject {
     'isDraft': isDraft,
     'aspect': aspect,
     'parentId': parentId,
+    'ownerProfileId': ownerProfileId,
   };
 
   factory QuackProject.fromJson(Map<String, dynamic> json) {
@@ -64,6 +68,7 @@ class QuackProject {
       isDraft: json['isDraft'] ?? false,
       aspect: json['aspect'] ?? '9:16',
       parentId: json['parentId'],
+      ownerProfileId: json['ownerProfileId'] ?? '',
     );
   }
 }
