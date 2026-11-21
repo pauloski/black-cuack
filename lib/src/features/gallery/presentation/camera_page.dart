@@ -13,6 +13,7 @@ import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/core/utils/camera_select.dart';
 import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
+import 'package:blackcuack_studio/src/core/utils/screen_lock.dart';
 import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
 import 'package:blackcuack_studio/src/core/utils/session_image.dart';
 import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
@@ -64,6 +65,8 @@ class _CameraPageState extends State<CameraPage> {
   // modifica la secuencia (capturar, borrar, duplicar, reordenar, restaurar).
   // Deshacer revierte la última acción, no borra las últimas capturas.
   final List<({List<XFile> photos, List<String?> ids})> _undo = [];
+  // Orientación (web/móvil): se pide pantalla completa + bloqueo una sola vez.
+  bool _immersiveTried = false;
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -171,6 +174,9 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   void dispose() {
+    // Liberar orientación y pantalla completa al salir del editor (no-op fuera de web).
+    unlockOrientation();
+    exitFullscreen();
     controller?.dispose();
     _remoteSub?.cancel();
     if (_sessionCode != null) _remoteService.closeSession(_sessionCode!);
@@ -178,6 +184,22 @@ class _CameraPageState extends State<CameraPage> {
       s.revoke();
     }
     super.dispose();
+  }
+
+  /// Orientación que exige la relación del proyecto (9:16 → vertical, 16:9 → horizontal).
+  Orientation get _requiredOrientation =>
+      _aspect == '16:9' ? Orientation.landscape : Orientation.portrait;
+
+  /// Una sola vez (solo web/teléfono): pide pantalla completa y bloquea la
+  /// orientación del proyecto. Best-effort: si el navegador lo rechaza, el aviso
+  /// de "gira el teléfono" cubre el caso.
+  void _maybeEnterImmersive(bool isPhone) {
+    if (_immersiveTried || !kIsWeb || !isPhone) return;
+    _immersiveTried = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await enterFullscreen();
+      await lockOrientation(_aspect);
+    });
   }
 
   /// Guarda una instantánea del estado ANTES de una acción, para poder deshacerla.
@@ -1013,6 +1035,19 @@ class _CameraPageState extends State<CameraPage> {
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
+
+    // Control de orientación (solo web en teléfono). En pantallas grandes
+    // (Mac/tablet) no se fuerza nada.
+    final media = MediaQuery.of(context);
+    final isPhone = media.size.shortestSide < 600;
+    final enforceOrientation = kIsWeb && isPhone;
+    _maybeEnterImmersive(isPhone);
+    if (enforceOrientation && media.orientation != _requiredOrientation) {
+      // Bloquea la captura (no se renderiza el editor) hasta girar: así no se
+      // guardan cuadros torcidos ni se rompe el layout.
+      return _buildRotateOverlay(_requiredOrientation);
+    }
+
     if (isPlaying) return _buildCinemaMode();
 
     return PopScope(
@@ -1347,6 +1382,61 @@ class _CameraPageState extends State<CameraPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Aviso de "gira el teléfono" cuando la orientación no coincide con el proyecto.
+  Widget _buildRotateOverlay(Orientation required) {
+    final toPortrait = required == Orientation.portrait;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  toPortrait
+                      ? Icons.stay_current_portrait_rounded
+                      : Icons.screen_rotation_rounded,
+                  color: AppColors.primary,
+                  size: 72,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  toPortrait
+                      ? 'Gira tu teléfono a vertical\npara seguir animando'
+                      : 'Gira tu teléfono a horizontal\npara seguir animando',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Lexend',
+                    fontSize: 18,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Este proyecto es ${toPortrait ? 'vertical (9:16)' : 'horizontal (16:9)'}.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white38, fontFamily: 'Lexend', fontSize: 13),
+                ),
+                const SizedBox(height: 28),
+                TextButton.icon(
+                  onPressed: () => _handleBackExit(Navigator.of(context)),
+                  icon: const Icon(Icons.close_rounded,
+                      color: Colors.white38, size: 18),
+                  label: const Text('Salir',
+                      style: TextStyle(color: Colors.white38, fontFamily: 'Lexend')),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
