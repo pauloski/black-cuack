@@ -24,6 +24,15 @@ Future<void> initRepositories() async {
     await repo.init();
     projectRepository = repo;
     repositoryIsEphemeral = false;
+    // Limpieza de cuadros huérfanos (capturas canceladas) SOLO si tienen más de
+    // 24 h: así no se borran cuadros recién capturados por otra pestaña.
+    try {
+      final removed =
+          await repo.pruneOrphanFrames(olderThan: const Duration(hours: 24));
+      if (removed > 0) debugPrint('🧹 cuadros huérfanos (>24h) eliminados: $removed');
+    } catch (e) {
+      debugPrint('prune huérfanos falló: $e');
+    }
   } catch (e) {
     projectRepository = InMemoryProjectRepository();
     repositoryIsEphemeral = true;

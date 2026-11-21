@@ -84,6 +84,24 @@ void main() {
     expect(await repo.loadFrameBytes(id), isNull);
   });
 
+  test('pruneOrphanFrames(olderThan) borra viejos y conserva recientes',
+      () async {
+    // Huérfano reciente (id con timestamp actual).
+    final recent = await repo.addFrame(Uint8List.fromList([1]));
+    // Huérfano viejo: inyectamos un id con timestamp de hace 48 h.
+    final old = DateTime.now().subtract(const Duration(hours: 48));
+    final oldId =
+        'f_${old.microsecondsSinceEpoch.toRadixString(16)}_deadbeefdeadbeef';
+    final box = Hive.lazyBox<Uint8List>(HiveProjectRepository.framesBoxName);
+    await box.put(oldId, Uint8List.fromList([2]));
+
+    final removed =
+        await repo.pruneOrphanFrames(olderThan: const Duration(hours: 24));
+    expect(removed, 1, reason: 'solo el viejo');
+    expect(await repo.loadFrameBytes(oldId), isNull);
+    expect(await repo.loadFrameBytes(recent), isNotNull);
+  });
+
   test('loadProjects devuelve los proyectos del más reciente al más antiguo',
       () async {
     await repo.saveProject(QuackProject(

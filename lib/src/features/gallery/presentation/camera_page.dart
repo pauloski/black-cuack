@@ -10,6 +10,7 @@ import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
 import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
 import 'package:blackcuack_studio/src/core/utils/session_image.dart';
 import 'package:blackcuack_studio/src/core/utils/video_creator.dart';
@@ -46,6 +47,10 @@ class _CameraPageState extends State<CameraPage> {
   List<String?> _frameIds = [];
   // Blobs/temp creados al reabrir, para revocarlos al salir (evita fugas).
   final List<SessionImage> _sessionImages = [];
+  // Cola de compresión en segundo plano (no bloquea el obturador). Cada captura
+  // se comprime y se guarda en el repo de a uno; el guardado espera la cola.
+  Future<void> _compressQueue = Future.value();
+  int _pendingCompressions = 0;
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -137,14 +142,44 @@ class _CameraPageState extends State<CameraPage> {
     if (controller == null || !controller!.value.isInitialized) return;
     try {
       final XFile file = await controller!.takePicture();
+      // El obturador no espera a la compresión: se muestra la imagen original
+      // al instante y se comprime en segundo plano.
       setState(() {
         lastCapturedPhoto = file;
         capturedPhotos.add(file);
-        _frameIds.add(null); // cuadro nuevo: sin id hasta guardar
+        _frameIds.add(null); // id se asigna cuando termine la compresión
         selectedIndex = null;
       });
+      _enqueueCompression(file);
     } catch (e) {
       debugPrint("Error captura: $e");
+    }
+  }
+
+  /// Encola la compresión de un cuadro recién capturado (serializado, uno a uno).
+  void _enqueueCompression(XFile file) {
+    _pendingCompressions++;
+    _compressQueue = _compressQueue.then((_) => _compressAndStore(file));
+  }
+
+  Future<void> _compressAndStore(XFile file) async {
+    try {
+      final raw = await file.readAsBytes();
+      final sw = Stopwatch()..start();
+      final jpeg = compressFrameJpeg(raw);
+      sw.stop();
+      debugPrint('⏱️ compresión (captura): ${sw.elapsedMilliseconds} ms/cuadro');
+      final id = await projectRepository.addFrame(jpeg);
+      final idx = capturedPhotos.indexOf(file);
+      if (idx != -1 && idx < _frameIds.length) {
+        _frameIds[idx] = id;
+      }
+      // Si el cuadro se borró antes de comprimirse, queda huérfano y lo limpia
+      // pruneOrphanFrames (>24h) en el próximo arranque.
+    } catch (e) {
+      debugPrint('Error compresión en segundo plano: $e');
+    } finally {
+      if (_pendingCompressions > 0) _pendingCompressions--;
     }
   }
 
@@ -205,12 +240,17 @@ class _CameraPageState extends State<CameraPage> {
   }) async {
     QuackSaveHelper.showLoadingQuack();
     try {
+      // Espera a que la cola de compresión termine (indicador ya visible). Así
+      // no se pierde ningún cuadro que todavía se esté comprimiendo.
+      await _compressQueue;
+
       final frames = <CapturedFrame>[];
       for (int i = 0; i < capturedPhotos.length; i++) {
         final id = i < _frameIds.length ? _frameIds[i] : null;
         if (id != null) {
           frames.add(CapturedFrame.existing(id));
         } else {
+          // Respaldo: si una compresión falló, se comprime ahora al guardar.
           frames.add(CapturedFrame.raw(await capturedPhotos[i].readAsBytes()));
         }
       }

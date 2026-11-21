@@ -65,13 +65,25 @@ class InMemoryProjectRepository implements ProjectRepository {
   }
 
   @override
-  Future<int> pruneOrphanFrames() async {
+  Future<int> pruneOrphanFrames({Duration? olderThan}) async {
     final referenced = _referencedFrameIds();
-    final orphans = _frames.keys.where((k) => !referenced.contains(k)).toList();
+    final orphans = _frames.keys
+        .where((k) => !referenced.contains(k) && _orphanEligible(k, olderThan))
+        .toList();
     for (final k in orphans) {
       _frames.remove(k);
     }
     return orphans.length;
+  }
+
+  bool _orphanEligible(String id, Duration? olderThan) {
+    if (olderThan == null) return true;
+    final parts = id.split('_');
+    if (parts.length < 2) return false;
+    final micros = int.tryParse(parts[1], radix: 16);
+    if (micros == null) return false;
+    final created = DateTime.fromMicrosecondsSinceEpoch(micros);
+    return DateTime.now().difference(created) > olderThan;
   }
 
   Set<String> _referencedFrameIds() =>

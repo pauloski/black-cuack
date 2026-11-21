@@ -53,5 +53,9 @@ abstract interface class ProjectRepository {
 
   /// Elimina los cuadros que no referencie ningún proyecto (p. ej. capturas de
   /// una sesión que no se llegó a guardar). Devuelve cuántos eliminó.
-  Future<int> pruneOrphanFrames();
+  ///
+  /// Con [olderThan], solo elimina los huérfanos cuya antigüedad (deducida del
+  /// id) supere ese lapso. Esto evita, en web con varias pestañas, borrar
+  /// cuadros recién capturados por otra pestaña que aún no están en un proyecto.
+  Future<int> pruneOrphanFrames({Duration? olderThan});
 }

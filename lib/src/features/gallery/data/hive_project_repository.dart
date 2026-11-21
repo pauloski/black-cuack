@@ -105,14 +105,28 @@ class HiveProjectRepository implements ProjectRepository {
   }
 
   @override
-  Future<int> pruneOrphanFrames() async {
+  Future<int> pruneOrphanFrames({Duration? olderThan}) async {
     final referenced = await _referencedFrameIds();
     final orphans = _frames.keys
         .whereType<String>()
-        .where((k) => !referenced.contains(k))
+        .where((k) =>
+            !referenced.contains(k) && _orphanEligible(k, olderThan))
         .toList();
     await _frames.deleteAll(orphans);
     return orphans.length;
+  }
+
+  /// `true` si el huérfano puede borrarse. Con [olderThan], exige que la edad
+  /// del cuadro (deducida del timestamp del id) supere ese lapso. Si el id no se
+  /// puede fechar, es conservador (no lo borra).
+  bool _orphanEligible(String id, Duration? olderThan) {
+    if (olderThan == null) return true;
+    final parts = id.split('_');
+    if (parts.length < 2) return false;
+    final micros = int.tryParse(parts[1], radix: 16);
+    if (micros == null) return false;
+    final created = DateTime.fromMicrosecondsSinceEpoch(micros);
+    return DateTime.now().difference(created) > olderThan;
   }
 
   /// Todos los ids de cuadro referenciados por algún proyecto guardado.
