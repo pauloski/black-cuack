@@ -57,6 +57,12 @@ class _CameraPageState extends State<CameraPage> {
   // Id estable del proyecto (borrador en curso o proyecto que se reabre).
   late final String _projectId;
   late final String _aspect;
+  // Título editable del proyecto (se puede renombrar con el lápiz).
+  late String _title;
+  // Pila de deshacer: instantáneas (cuadros + ids) ANTES de cada acción que
+  // modifica la secuencia (capturar, borrar, duplicar, reordenar, restaurar).
+  // Deshacer revierte la última acción, no borra las últimas capturas.
+  final List<({List<XFile> photos, List<String?> ids})> _undo = [];
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -83,6 +89,7 @@ class _CameraPageState extends State<CameraPage> {
         ? widget.projectToLoad!.id
         : DateTime.now().millisecondsSinceEpoch.toString();
     _aspect = isEditing ? widget.projectToLoad!.aspect : widget.aspect;
+    _title = isEditing ? widget.projectToLoad!.name : 'Mi Animación';
     _initCamera();
     if (isEditing) {
       _hydrateFromProject();
@@ -163,10 +170,20 @@ class _CameraPageState extends State<CameraPage> {
     super.dispose();
   }
 
+  /// Guarda una instantánea del estado ANTES de una acción, para poder deshacerla.
+  void _pushUndo() {
+    _undo.add((
+      photos: List<XFile>.of(capturedPhotos),
+      ids: List<String?>.of(_frameIds),
+    ));
+    if (_undo.length > 40) _undo.removeAt(0); // acota memoria
+  }
+
   Future<void> _takePhoto() async {
     if (controller == null || !controller!.value.isInitialized) return;
     try {
       final XFile file = await controller!.takePicture();
+      _pushUndo();
       // El obturador no espera a la compresión: se muestra la imagen original
       // al instante y se comprime en segundo plano.
       setState(() {
@@ -275,22 +292,25 @@ class _CameraPageState extends State<CameraPage> {
   void _cycleOnionLayers() =>
       setState(() => _onionLayers = (_onionLayers + 1) % 4);
 
+  /// Deshacer: revierte la última acción (capturar, borrar, duplicar, reordenar,
+  /// restaurar). Si se había borrado un cuadro, deshacer lo vuelve a poner.
   void _handleUndo() {
-    if (!hasPhotos) return;
+    if (_undo.isEmpty) {
+      _showSnack('Nada que deshacer', Colors.white24);
+      return;
+    }
+    final snap = _undo.removeLast();
     setState(() {
-      if (selectedIndex != null) {
-        capturedPhotos.removeAt(selectedIndex!);
-        if (selectedIndex! < _frameIds.length) _frameIds.removeAt(selectedIndex!);
-        selectedIndex = null;
-      } else {
-        capturedPhotos.removeLast();
-        if (_frameIds.isNotEmpty) _frameIds.removeLast();
-      }
+      capturedPhotos = snap.photos;
+      _frameIds = snap.ids;
+      selectedIndex = null;
       lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
     });
+    _persistDraft();
   }
 
   void _reorderFrames(int oldIndex, int newIndex) {
+    _pushUndo();
     setState(() {
       final p = capturedPhotos.removeAt(oldIndex);
       capturedPhotos.insert(newIndex.clamp(0, capturedPhotos.length), p);
@@ -304,6 +324,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   void _duplicateFrame(int i) {
+    _pushUndo();
     setState(() {
       // Nuevo XFile (misma ruta) para no colisionar claves; el id (bytes) se
       // comparte, así que no se duplica el almacenamiento.
@@ -318,6 +339,7 @@ class _CameraPageState extends State<CameraPage> {
 
   void _deleteFrameWithUndo(int i) {
     if (i < 0 || i >= capturedPhotos.length) return;
+    _pushUndo();
     final removedPhoto = capturedPhotos[i];
     final removedId = i < _frameIds.length ? _frameIds[i] : null;
     setState(() {
@@ -377,6 +399,7 @@ class _CameraPageState extends State<CameraPage> {
       ids.add(id);
     }
     if (!mounted) return;
+    _pushUndo(); // restaurar es reversible con Deshacer
     setState(() {
       capturedPhotos = photos;
       _frameIds = ids;
@@ -460,6 +483,67 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
+  /// Renombra el proyecto (lápiz junto al título). Si el proyecto ya existe en
+  /// el repo, persiste el nuevo nombre de inmediato.
+  Future<void> _renameTitle() async {
+    final ctrl = TextEditingController(text: _title);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('TÍTULO',
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.primary, fontSize: 16)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white, fontFamily: 'Lexend'),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+          decoration: InputDecoration(
+            hintText: 'Nombre de la animación',
+            hintStyle: const TextStyle(color: Colors.white38),
+            filled: true,
+            fillColor: Colors.white10,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCELAR',
+                  style: TextStyle(color: Colors.white38))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('LISTO',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    setState(() => _title = name);
+    // Si ya hay un registro guardado (proyecto o borrador), persiste el nombre.
+    final existing = await projectRepository.getProject(_projectId);
+    if (existing != null) {
+      await saveCapturedProject(
+        projectRepository,
+        id: _projectId,
+        name: name,
+        artistName: existing.artistName,
+        frames: existing.photoPaths.map(CapturedFrame.existing).toList(),
+        isPublished: existing.isPublished,
+        workshopCode: existing.workshopCode,
+        isDraft: existing.isDraft,
+        aspect: existing.aspect,
+      );
+    }
+  }
+
   void _handleSaveAction() {
     if (capturedPhotos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -467,7 +551,7 @@ class _CameraPageState extends State<CameraPage> {
       );
       return;
     }
-    _cameraViewerKey.currentState?.showSaveDialog(context);
+    _cameraViewerKey.currentState?.showSaveDialog(context, initialName: _title);
   }
 
   /// Guarda el proyecto en el **repositorio local** (sin Firebase). Conserva los
@@ -977,7 +1061,6 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildTopBar() {
-    final projectName = widget.projectToLoad?.name ?? 'Mi Animación';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       color: Colors.black,
@@ -988,16 +1071,24 @@ class _CameraPageState extends State<CameraPage> {
             onPressed: () => _handleBackExit(Navigator.of(context)),
           ),
           Expanded(
-            child: Row(
-              children: [
-                Text(projectName,
-                  style: const TextStyle(
-                    color: Colors.white, fontFamily: 'Lexend',
-                    fontWeight: FontWeight.w600, fontSize: 15,
-                  )),
-                const SizedBox(width: 5),
-                const Icon(Icons.edit_outlined, color: Colors.white24, size: 13),
-              ],
+            child: GestureDetector(
+              onTap: _renameTitle,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(_title,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white, fontFamily: 'Lexend',
+                          fontWeight: FontWeight.w600, fontSize: 15,
+                        )),
+                  ),
+                  const SizedBox(width: 5),
+                  const Icon(Icons.edit_outlined,
+                      color: Colors.white38, size: 14),
+                ],
+              ),
             ),
           ),
           IconButton(
@@ -1015,12 +1106,12 @@ class _CameraPageState extends State<CameraPage> {
           ),
           IconButton(
             icon: Icon(
-              selectedIndex != null ? Icons.delete_forever : Icons.undo_rounded,
-              color: hasPhotos ? Colors.white60 : Colors.white24,
+              Icons.undo_rounded,
+              color: _undo.isNotEmpty ? Colors.white60 : Colors.white24,
               size: 22,
             ),
-            onPressed: hasPhotos ? _handleUndo : null,
-            tooltip: selectedIndex != null ? 'Eliminar frame' : 'Deshacer',
+            onPressed: _undo.isNotEmpty ? _handleUndo : null,
+            tooltip: 'Deshacer',
           ),
           // IGNITE (borrado de soportes): oculto tras el flag.
           if (kEnableIgniteFeatures)
@@ -1041,22 +1132,25 @@ class _CameraPageState extends State<CameraPage> {
           ),
           const SizedBox(width: 4),
           GestureDetector(
-            onTap: _handleSaveAction,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.group_rounded, color: Colors.black, size: 15),
-                  SizedBox(width: 5),
-                  Text('Compartir',
-                    style: TextStyle(fontFamily: 'Lexend', color: Colors.black,
-                      fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
+            onTap: hasPhotos ? _handleSaveAction : null,
+            child: Opacity(
+              opacity: hasPhotos ? 1 : 0.4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.save_rounded, color: Colors.black, size: 16),
+                    SizedBox(width: 5),
+                    Text('Guardar',
+                      style: TextStyle(fontFamily: 'Lexend', color: Colors.black,
+                        fontSize: 13, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1203,7 +1297,7 @@ class _CameraPageState extends State<CameraPage> {
               border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.danger.withOpacity(0.45),
+                  color: AppColors.danger.withValues(alpha: 0.45),
                   blurRadius: 14, spreadRadius: 2,
                 ),
               ],

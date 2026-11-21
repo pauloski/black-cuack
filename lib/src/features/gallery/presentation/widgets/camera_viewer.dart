@@ -45,10 +45,14 @@ class CameraViewer extends StatefulWidget {
 class CameraViewerState extends State<CameraViewer> {
   final GroupService _groupService = GroupService();
 
-  void showSaveDialog(BuildContext context) {
+  void showSaveDialog(BuildContext context, {String? initialName}) {
     final bool isEditing = widget.projectToLoad != null;
     final nameController = TextEditingController(
-      text: isEditing ? widget.projectToLoad!.name : "",
+      text: isEditing
+          ? widget.projectToLoad!.name
+          : (initialName != null && initialName != 'Mi Animación'
+              ? initialName
+              : ""),
     );
     final artistController = TextEditingController(
       text: isEditing ? widget.projectToLoad!.artistName : "",
@@ -101,7 +105,7 @@ class CameraViewerState extends State<CameraViewer> {
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     value: isPublished,
-                    activeColor: const Color(0xFFBC87FE),
+                    activeThumbColor: const Color(0xFFBC87FE),
                     onChanged: (val) => setModalState(() => isPublished = val),
                   ),
                 ] else
@@ -278,7 +282,7 @@ class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..strokeWidth = 1.0;
     for (var i = 1; i < 3; i++) {
       canvas.drawLine(

@@ -142,11 +142,31 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
             ],
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
-            tooltip: 'Proyectar',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => ProjectionPage(projects: [widget.project]))),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFB800),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cast_rounded, color: Colors.black, size: 16),
+                  SizedBox(width: 6),
+                  Text('PROYECTAR',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontFamily: 'Lexend',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      )),
+                ],
+              ),
+            ),
           ),
         ],
       ),
