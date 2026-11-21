@@ -446,12 +446,15 @@ class _CameraPageState extends State<CameraPage> {
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+      builder: (ctx) => SingleChildScrollView(
+        child: Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,6 +513,7 @@ class _CameraPageState extends State<CameraPage> {
                     ),
                   )),
           ],
+        ),
         ),
       ),
     );
@@ -677,11 +681,13 @@ class _CameraPageState extends State<CameraPage> {
   void _showExportDialog() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) => Padding(
+      builder: (_) => SingleChildScrollView(
+        child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -747,6 +753,7 @@ class _CameraPageState extends State<CameraPage> {
               },
             ),
           ],
+        ),
         ),
       ),
     );
@@ -889,14 +896,20 @@ class _CameraPageState extends State<CameraPage> {
   void _showSettings() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          padding: const EdgeInsets.all(30),
-          child: Column(
+        builder: (context, setModalState) => SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.only(
+                left: 30,
+                right: 30,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('VELOCIDAD (FPS)',
@@ -957,6 +970,7 @@ class _CameraPageState extends State<CameraPage> {
                 ],
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -1106,6 +1120,86 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildTopBar() {
+    // En pantallas angostas, los secundarios (versión, historial, exportar) van a
+    // un menú ⋯ para que no se superpongan con el título. Quedan Deshacer y Guardar.
+    final compact = MediaQuery.of(context).size.width < 480;
+
+    final undoBtn = IconButton(
+      icon: Icon(Icons.undo_rounded,
+          color: _undo.isNotEmpty ? Colors.white60 : Colors.white24, size: 22),
+      onPressed: _undo.isNotEmpty ? _handleUndo : null,
+      tooltip: 'Deshacer',
+    );
+
+    final versionBtn = IconButton(
+      icon: Icon(Icons.bookmark_add_outlined,
+          color: hasPhotos ? AppColors.secondary : Colors.white24, size: 20),
+      onPressed: hasPhotos ? _saveVersion : null,
+      tooltip: 'Guardar versión',
+    );
+    final historyBtn = IconButton(
+      icon: const Icon(Icons.history_rounded, color: Colors.white60, size: 20),
+      onPressed: _showVersions,
+      tooltip: 'Versiones',
+    );
+    final exportBtn = IconButton(
+      icon: Icon(Icons.ios_share,
+          color: hasPhotos ? Colors.white60 : Colors.white24, size: 20),
+      onPressed: hasPhotos ? _exportVideo : null,
+      tooltip: 'Exportar',
+    );
+
+    final guardarPill = GestureDetector(
+      onTap: hasPhotos ? _handleSaveAction : null,
+      child: Opacity(
+        opacity: hasPhotos ? 1 : 0.4,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.save_rounded, color: Colors.black, size: 16),
+              SizedBox(width: 5),
+              Text('Guardar',
+                  style: TextStyle(
+                      fontFamily: 'Lexend',
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final List<Widget> actions = compact
+        ? [
+            undoBtn,
+            _buildOverflowMenu(),
+            const SizedBox(width: 2),
+            guardarPill,
+          ]
+        : [
+            versionBtn,
+            historyBtn,
+            undoBtn,
+            if (kEnableIgniteFeatures)
+              IconButton(
+                icon: Icon(Icons.auto_fix_high_rounded,
+                    color: hasPhotos ? AppColors.secondary : Colors.white24,
+                    size: 20),
+                onPressed: hasPhotos ? _openEraseTool : null,
+                tooltip: 'Borrar soporte',
+              ),
+            exportBtn,
+            const SizedBox(width: 4),
+            guardarPill,
+          ];
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       color: Colors.black,
@@ -1123,6 +1217,7 @@ class _CameraPageState extends State<CameraPage> {
                 children: [
                   Flexible(
                     child: Text(_title,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white, fontFamily: 'Lexend',
@@ -1136,72 +1231,54 @@ class _CameraPageState extends State<CameraPage> {
               ),
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.bookmark_add_outlined,
-                color: hasPhotos ? AppColors.secondary : Colors.white24,
-                size: 20),
-            onPressed: hasPhotos ? _saveVersion : null,
-            tooltip: 'Guardar versión',
-          ),
-          IconButton(
-            icon: const Icon(Icons.history_rounded,
-                color: Colors.white60, size: 20),
-            onPressed: _showVersions,
-            tooltip: 'Versiones',
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.undo_rounded,
-              color: _undo.isNotEmpty ? Colors.white60 : Colors.white24,
-              size: 22,
-            ),
-            onPressed: _undo.isNotEmpty ? _handleUndo : null,
-            tooltip: 'Deshacer',
-          ),
-          // IGNITE (borrado de soportes): oculto tras el flag.
-          if (kEnableIgniteFeatures)
-            IconButton(
-              icon: Icon(
-                Icons.auto_fix_high_rounded,
-                color: hasPhotos ? AppColors.secondary : Colors.white24,
-                size: 20,
-              ),
-              onPressed: hasPhotos ? _openEraseTool : null,
-              tooltip: 'Borrar soporte',
-            ),
-          IconButton(
-            icon: Icon(Icons.ios_share,
-              color: hasPhotos ? Colors.white60 : Colors.white24, size: 20),
-            onPressed: hasPhotos ? _exportVideo : null,
-            tooltip: 'Exportar',
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: hasPhotos ? _handleSaveAction : null,
-            child: Opacity(
-              opacity: hasPhotos ? 1 : 0.4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.save_rounded, color: Colors.black, size: 16),
-                    SizedBox(width: 5),
-                    Text('Guardar',
-                      style: TextStyle(fontFamily: 'Lexend', color: Colors.black,
-                        fontSize: 13, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+          ...actions,
+          const SizedBox(width: 6),
         ],
       ),
+    );
+  }
+
+  /// Menú ⋯ para pantallas angostas: versión, historial y exportar.
+  Widget _buildOverflowMenu() {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded, color: Colors.white70, size: 22),
+      color: const Color(0xFF1A1A1A),
+      tooltip: 'Más',
+      onSelected: (v) {
+        switch (v) {
+          case 'version':
+            if (hasPhotos) _saveVersion();
+            break;
+          case 'history':
+            _showVersions();
+            break;
+          case 'export':
+            if (hasPhotos) _exportVideo();
+            break;
+          case 'erase':
+            if (hasPhotos) _openEraseTool();
+            break;
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'version',
+          child: _MenuRow(icon: Icons.bookmark_add_outlined, label: 'Guardar versión'),
+        ),
+        const PopupMenuItem(
+          value: 'history',
+          child: _MenuRow(icon: Icons.history_rounded, label: 'Versiones'),
+        ),
+        const PopupMenuItem(
+          value: 'export',
+          child: _MenuRow(icon: Icons.ios_share, label: 'Exportar'),
+        ),
+        if (kEnableIgniteFeatures)
+          const PopupMenuItem(
+            value: 'erase',
+            child: _MenuRow(icon: Icons.auto_fix_high_rounded, label: 'Borrar soporte'),
+          ),
+      ],
     );
   }
 
@@ -1259,11 +1336,13 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildLeftPanel() {
+    // Panel compacto: capas de cebolla y cuadrícula. La opacidad del papel cebolla
+    // vive en Ajustes (deslizador horizontal, fácil con el dedo), no como un
+    // deslizador vertical diminuto en el borde.
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Onion layers
         _PanelBtn(
           onTap: _cycleOnionLayers,
           active: _onionLayers > 0,
@@ -1280,32 +1359,7 @@ class _CameraPageState extends State<CameraPage> {
             ],
           ),
         ),
-        // Opacity slider (vertical)
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: RotatedBox(
-              quarterTurns: -1,
-              child: SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                  activeTrackColor: Colors.white,
-                  inactiveTrackColor: Colors.white24,
-                  thumbColor: Colors.white,
-                  overlayColor: Colors.white12,
-                ),
-                child: Slider(
-                  value: onionOpacity,
-                  min: 0, max: 1,
-                  onChanged: (v) => setState(() => onionOpacity = v),
-                ),
-              ),
-            ),
-          ),
-        ),
-        // Grid toggle
+        const SizedBox(height: 16),
         _PanelBtn(
           icon: Icons.grid_4x4,
           onTap: () => setState(() => showGrid = !showGrid),
@@ -1467,6 +1521,26 @@ class _CameraPageState extends State<CameraPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Fila del menú ⋯ ───────────────────────────────────────────────────────────
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _MenuRow({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(width: 12),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white, fontFamily: 'Lexend', fontSize: 13)),
+      ],
     );
   }
 }
