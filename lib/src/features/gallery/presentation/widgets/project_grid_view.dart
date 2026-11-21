@@ -39,7 +39,9 @@ class _ProjectGridViewState extends State<ProjectGridView> {
                 color: AppColors.secondary, strokeWidth: 2),
           );
         }
-        final proyectos = snapshot.data ?? [];
+        // Un borrador con 0 cuadros no aparece.
+        final proyectos =
+            (snapshot.data ?? []).where((p) => p.photoPaths.isNotEmpty).toList();
         if (proyectos.isEmpty) {
           return const Center(
             child: Column(

@@ -205,6 +205,48 @@ class _CameraPageState extends State<CameraPage> {
     }
   }
 
+  /// Al salir con "atrás" de un proyecto nuevo con cuadros: pregunta si guardar
+  /// como borrador o descartar. (El borrador automático ya protege ante cierres
+  /// inesperados; esto es para la salida explícita.)
+  Future<void> _handleBackExit(NavigatorState nav) async {
+    if (isEditing || capturedPhotos.isEmpty) {
+      nav.pop();
+      return;
+    }
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('¿GUARDAR BORRADOR?',
+            style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB800), fontSize: 16)),
+        content: const Text(
+          'Tienes cuadros sin guardar. Puedes guardarlos como borrador para seguir luego, o descartarlos.',
+          style: TextStyle(color: Colors.white54, fontFamily: 'Lexend', fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'descartar'),
+            child: const Text('DESCARTAR', style: TextStyle(color: Color(0xFFFF4D4D))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFB800)),
+            onPressed: () => Navigator.pop(ctx, 'borrador'),
+            child: const Text('GUARDAR BORRADOR', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+    if (choice == null) return; // cancelar: quedarse
+    if (choice == 'descartar') {
+      await _compressQueue; // evita que una compresión en curso recree el borrador
+      await projectRepository.deleteProject(_projectId);
+    } else {
+      await _compressQueue;
+      await _persistDraft();
+    }
+    if (mounted) nav.pop();
+  }
+
   void _playSequence() async {
     if (capturedPhotos.isEmpty) return;
     setState(() {
@@ -683,7 +725,13 @@ class _CameraPageState extends State<CameraPage> {
     }
     if (isPlaying) return _buildCinemaMode();
 
-    return Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackExit(Navigator.of(context));
+      },
+      child: Stack(
       children: [
         Scaffold(
           backgroundColor: Colors.black,
@@ -725,6 +773,7 @@ class _CameraPageState extends State<CameraPage> {
             ),
           ),
       ],
+      ),
     );
   }
 
