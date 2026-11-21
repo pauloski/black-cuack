@@ -11,6 +11,7 @@ import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
+import 'package:blackcuack_studio/src/core/utils/camera_select.dart';
 import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
 import 'package:blackcuack_studio/src/core/utils/quack_save_helper.dart';
 import 'package:blackcuack_studio/src/core/utils/session_image.dart';
@@ -145,9 +146,18 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _initCamera() async {
-    cameras = await availableCameras();
+    try {
+      cameras = await availableCameras();
+    } catch (e) {
+      debugPrint('No se pudieron enumerar cámaras: $e');
+      cameras = const [];
+    }
     if (cameras != null && cameras!.isNotEmpty) {
-      controller = CameraController(cameras![0], ResolutionPreset.high);
+      // Stop motion: siempre la cámara TRASERA (apunta a la mesa). Si no hay
+      // trasera (webcam del Mac), usa la disponible. Sin botón de cambio.
+      final cam = pickBackCamera(cameras!);
+      controller = CameraController(cam, ResolutionPreset.high,
+          enableAudio: false);
       await controller!.initialize();
       if (mounted) {
         setState(() {});

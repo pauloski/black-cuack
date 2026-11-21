@@ -13,11 +13,12 @@ void main() {
     expect(id, startsWith('f_'));
     final parts = id.split('_');
     expect(parts.length, 3);
-    // El segmento de timestamp es hexadecimal parseable (lo usa la poda).
+    // El segmento de timestamp es hexadecimal parseable (lo usa la poda; cabe en
+    // un entero: microsegundos actuales < 2^53).
     expect(int.tryParse(parts[1], radix: 16), isNotNull);
-    // 64 bits aleatorios = 16 dígitos hex.
-    expect(parts[2].length, 16);
-    expect(int.tryParse(parts[2], radix: 16), isNotNull);
+    // 64 bits aleatorios = 16 dígitos hex (no se parsea como int: 64 bits
+    // desbordan el int con signo de la VM; basta el formato).
+    expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(parts[2]), isTrue);
   });
 
   test('genera miles de ids únicos sin lanzar', () {
