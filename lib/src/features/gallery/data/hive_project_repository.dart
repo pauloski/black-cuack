@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:hive_ce/hive.dart';
 
+import 'package:blackcuack_studio/src/core/utils/id_gen.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_repository.dart';
 
@@ -26,21 +26,10 @@ class HiveProjectRepository implements ProjectRepository {
   // abrir; cada uno se lee bajo demanda.
   late LazyBox<Uint8List> _frames;
 
-  final Random _rng = Random();
-
   @override
   Future<void> init() async {
     _projects = await Hive.openBox<String>(projectsBoxName);
     _frames = await Hive.openLazyBox<Uint8List>(framesBoxName);
-  }
-
-  /// Id de cuadro único y estable, sin dependencias externas:
-  /// marca de microsegundos + 64 bits aleatorios.
-  String _newFrameId() {
-    final ts = DateTime.now().microsecondsSinceEpoch;
-    final a = _rng.nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
-    final b = _rng.nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
-    return 'f_${ts.toRadixString(16)}_$a$b';
   }
 
   @override
@@ -82,7 +71,7 @@ class HiveProjectRepository implements ProjectRepository {
 
   @override
   Future<String> addFrame(Uint8List bytes) async {
-    final id = _newFrameId();
+    final id = newFrameId();
     await _frames.put(id, bytes);
     return id;
   }
