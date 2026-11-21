@@ -203,13 +203,91 @@ class _FeatureRow extends StatelessWidget {
 }
 
 // ── New project CTA (yellow) ──────────────────────────────────────────────────
+/// Pregunta la orientación (HDU2) y abre la cámara con esa relación fija.
+Future<void> startNewProjectFlow(BuildContext context) async {
+  final aspect = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: const Color(0xFF1A1A1A),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('ORIENTACIÓN',
+              style: TextStyle(
+                  color: AppColors.primary, fontFamily: 'Lexend', fontSize: 16)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _AspectChoice(
+                  icon: Icons.stay_current_portrait_rounded,
+                  label: 'Vertical\n9:16',
+                  onTap: () => Navigator.pop(ctx, '9:16'),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _AspectChoice(
+                  icon: Icons.stay_current_landscape_rounded,
+                  label: 'Horizontal\n16:9',
+                  onTap: () => Navigator.pop(ctx, '16:9'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+  if (aspect == null || !context.mounted) return;
+  Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => CameraPage(aspect: aspect)));
+}
+
+class _AspectChoice extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _AspectChoice(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 40),
+            const SizedBox(height: 10),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontFamily: 'Lexend',
+                    fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NewProjectButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CameraPage()),
-      ),
+      onTap: () => startNewProjectFlow(context),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
@@ -435,9 +513,7 @@ class _ProjectsTab extends StatelessWidget {
             ),
             child: GestureDetector(
               onTap: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CameraPage()),
-                );
+                await startNewProjectFlow(context);
                 onProjectCreated();
               },
               child: Container(
@@ -822,10 +898,7 @@ class _ProjectsListPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 26),
             tooltip: 'Nuevo proyecto',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CameraPage()),
-            ),
+            onPressed: () => startNewProjectFlow(context),
           ),
           const SizedBox(width: 8),
         ],

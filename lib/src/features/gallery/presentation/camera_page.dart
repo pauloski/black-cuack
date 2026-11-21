@@ -25,10 +25,12 @@ import 'package:blackcuack_studio/src/features/gallery/presentation/pages/erase_
 class CameraPage extends StatefulWidget {
   final QuackProject? projectToLoad;
   final bool startRemoteSession;
+  final String aspect; // '9:16' | '16:9' (proyecto nuevo)
   const CameraPage({
     super.key,
     this.projectToLoad,
     this.startRemoteSession = false,
+    this.aspect = '9:16',
   });
 
   @override
@@ -54,6 +56,7 @@ class _CameraPageState extends State<CameraPage> {
   int _pendingCompressions = 0;
   // Id estable del proyecto (borrador en curso o proyecto que se reabre).
   late final String _projectId;
+  late final String _aspect;
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -79,6 +82,7 @@ class _CameraPageState extends State<CameraPage> {
     _projectId = isEditing
         ? widget.projectToLoad!.id
         : DateTime.now().millisecondsSinceEpoch.toString();
+    _aspect = isEditing ? widget.projectToLoad!.aspect : widget.aspect;
     _initCamera();
     if (isEditing) {
       _hydrateFromProject();
@@ -93,7 +97,8 @@ class _CameraPageState extends State<CameraPage> {
     final ids = _frameIds.whereType<String>().toList();
     if (ids.isEmpty) return;
     try {
-      await saveDraft(projectRepository, id: _projectId, frameIds: ids);
+      await saveDraft(projectRepository,
+          id: _projectId, frameIds: ids, aspect: _aspect);
     } catch (e) {
       debugPrint('No se pudo persistir el borrador: $e');
     }
@@ -186,7 +191,7 @@ class _CameraPageState extends State<CameraPage> {
     try {
       final raw = await file.readAsBytes();
       final sw = Stopwatch()..start();
-      final jpeg = compressFrameJpeg(raw);
+      final jpeg = compressFrameJpeg(raw, aspect: aspectValue(_aspect));
       sw.stop();
       debugPrint('⏱️ compresión (captura): ${sw.elapsedMilliseconds} ms/cuadro');
       compressionDebug.value = '${sw.elapsedMilliseconds} ms/cuadro';
@@ -327,6 +332,7 @@ class _CameraPageState extends State<CameraPage> {
         isPublished: isPublished,
         workshopCode: groupCode,
         isDraft: false, // "Guardar" finaliza el borrador
+        aspect: _aspect,
       );
 
       _quackSavedToast();
@@ -786,7 +792,7 @@ class _CameraPageState extends State<CameraPage> {
         children: [
           IconButton(
             icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 22),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => _handleBackExit(Navigator.of(context)),
           ),
           Expanded(
             child: Row(
@@ -870,6 +876,20 @@ class _CameraPageState extends State<CameraPage> {
           capturedPhotos: capturedPhotos,
           projectToLoad: widget.projectToLoad,
           onSave: _saveLocally,
+        ),
+        // Guía de encuadre según la orientación del proyecto (HDU2).
+        IgnorePointer(
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: aspectValue(_aspect),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35), width: 2),
+                ),
+              ),
+            ),
+          ),
         ),
         Positioned(left: 8, top: 16, bottom: 16, child: _buildLeftPanel()),
         Positioned(right: 8, top: 0, bottom: 0, child: _buildRightPanel()),

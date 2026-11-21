@@ -38,6 +38,7 @@ Future<QuackProject> saveCapturedProject(
   bool isPublished = false,
   String? workshopCode,
   bool isDraft = false,
+  String aspect = '9:16',
 }) async {
   final ids = <String>[];
   final sw = Stopwatch();
@@ -47,7 +48,7 @@ Future<QuackProject> saveCapturedProject(
       ids.add(f.existingId!);
     } else {
       sw.start();
-      final jpeg = compressFrameJpeg(f.bytes!);
+      final jpeg = compressFrameJpeg(f.bytes!, aspect: aspectValue(aspect));
       sw.stop();
       newCount++;
       ids.add(await repo.addFrame(jpeg));
@@ -70,6 +71,7 @@ Future<QuackProject> saveCapturedProject(
     isPublished: isPublished,
     workshopCode: workshopCode,
     isDraft: isDraft,
+    aspect: aspect,
   );
   return repo.saveProject(project);
 }
@@ -84,6 +86,7 @@ Future<QuackProject> saveDraft(
   required List<String> frameIds,
   String name = 'Borrador',
   String artistName = '',
+  String aspect = '9:16',
 }) async {
   final project = QuackProject(
     id: id,
@@ -92,6 +95,7 @@ Future<QuackProject> saveDraft(
     photoPaths: frameIds,
     date: DateTime.now(),
     isDraft: true,
+    aspect: aspect,
   );
   return repo.saveProject(project);
 }

@@ -60,6 +60,26 @@ void main() {
     expect(dec.height, 40);
   });
 
+  test('recorta a 9:16 (vertical) y a 16:9 (horizontal)', () {
+    // Entrada apaisada 2000x1000 → recorte a 9:16 (≈0.5625).
+    final wide = img.Image(width: 2000, height: 1000);
+    img.fill(wide, color: img.ColorRgb8(1, 2, 3));
+    final v = img.decodeJpg(compressFrameJpeg(
+      Uint8List.fromList(img.encodePng(wide)),
+      aspect: aspectValue('9:16'),
+    ))!;
+    expect((v.width / v.height - 9 / 16).abs() < 0.02, isTrue);
+
+    // Entrada vertical 1000x2000 → recorte a 16:9 (≈1.777).
+    final tall = img.Image(width: 1000, height: 2000);
+    img.fill(tall, color: img.ColorRgb8(1, 2, 3));
+    final h = img.decodeJpg(compressFrameJpeg(
+      Uint8List.fromList(img.encodePng(tall)),
+      aspect: aspectValue('16:9'),
+    ))!;
+    expect((h.width / h.height - 16 / 9).abs() < 0.02, isTrue);
+  });
+
   test('salida JPEG para una entrada JPEG normal', () {
     final src = img.Image(width: 100, height: 100);
     img.fill(src, color: img.ColorRgb8(123, 222, 64));

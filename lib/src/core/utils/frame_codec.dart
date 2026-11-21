@@ -9,10 +9,14 @@ import 'package:image/image.dart' as img;
 /// - codifica JPEG con [quality].
 ///
 /// Si los bytes no se pueden decodificar como imagen, devuelve [input] sin tocar.
+/// Relación de aspecto (ancho/alto) a partir de '9:16' o '16:9'.
+double aspectValue(String aspect) => aspect == '16:9' ? 16 / 9 : 9 / 16;
+
 Uint8List compressFrameJpeg(
   Uint8List input, {
   int maxSide = 1280,
   int quality = 85,
+  double? aspect,
 }) {
   var image = img.decodeImage(input);
   if (image == null) return input;
@@ -27,6 +31,11 @@ Uint8List compressFrameJpeg(
     image = img.compositeImage(bg, image);
   }
 
+  // 2b) Recorte centrado a la relación de aspecto del proyecto (HDU2).
+  if (aspect != null) {
+    image = _cropToAspect(image, aspect);
+  }
+
   // 3) Reducir el lado mayor a maxSide (nunca ampliar).
   final longest = image.width >= image.height ? image.width : image.height;
   if (longest > maxSide) {
@@ -38,4 +47,21 @@ Uint8List compressFrameJpeg(
   }
 
   return img.encodeJpg(image, quality: quality);
+}
+
+/// Recorte centrado a la relación [aspect] (ancho/alto).
+img.Image _cropToAspect(img.Image im, double aspect) {
+  final current = im.width / im.height;
+  if ((current - aspect).abs() < 0.001) return im;
+  int w, h;
+  if (current > aspect) {
+    h = im.height;
+    w = (h * aspect).round();
+  } else {
+    w = im.width;
+    h = (w / aspect).round();
+  }
+  final x = ((im.width - w) / 2).round();
+  final y = ((im.height - h) / 2).round();
+  return img.copyCrop(im, x: x, y: y, width: w, height: h);
 }

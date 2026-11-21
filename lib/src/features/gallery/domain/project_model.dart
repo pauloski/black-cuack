@@ -10,6 +10,8 @@ class QuackProject {
   // Borrador: proyecto en curso aún sin "Guardar" (título/artista). Protege sus
   // cuadros de la limpieza de huérfanos y permite reabrir tras un cierre.
   final bool isDraft;
+  // Orientación fija del proyecto: '9:16' (vertical) o '16:9' (horizontal).
+  final String aspect;
 
   QuackProject({
     required this.id,
@@ -21,6 +23,7 @@ class QuackProject {
     this.workshopCode,
     this.userId = '', // ✅ Valor por defecto por si acaso
     this.isDraft = false,
+    this.aspect = '9:16',
   });
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +36,7 @@ class QuackProject {
     'workshopCode': workshopCode,
     'userId': userId, // ✅ Lo incluimos en el mapa de salida
     'isDraft': isDraft,
+    'aspect': aspect,
   };
 
   factory QuackProject.fromJson(Map<String, dynamic> json) {
@@ -53,6 +57,7 @@ class QuackProject {
       workshopCode: json['workshopCode'],
       userId: json['userId'] ?? '', // ✅ Lo recuperamos de Firebase
       isDraft: json['isDraft'] ?? false,
+      aspect: json['aspect'] ?? '9:16',
     );
   }
 }
