@@ -254,18 +254,20 @@ class _CameraPageState extends State<CameraPage> {
 
   void _playSequence() async {
     if (capturedPhotos.isEmpty) return;
+    // Bucle continuo desde el cuadro seleccionado (o el primero).
+    final start = (selectedIndex ?? 0).clamp(0, capturedPhotos.length - 1);
     setState(() {
       isPlaying = true;
-      previewIndex = 0;
+      previewIndex = start;
       selectedIndex = null;
     });
-    for (int i = 0; i < capturedPhotos.length; i++) {
-      if (!mounted || !isPlaying) break;
+    int i = start;
+    while (mounted && isPlaying) {
       setState(() => previewIndex = i);
       await Future.delayed(Duration(milliseconds: (1000 / fps).round()));
+      if (capturedPhotos.isEmpty) break;
+      i = (i + 1) % capturedPhotos.length;
     }
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted && isPlaying) _stopPlayback();
   }
 
   void _stopPlayback() => setState(() => isPlaying = false);
@@ -286,6 +288,65 @@ class _CameraPageState extends State<CameraPage> {
       }
       lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
     });
+  }
+
+  void _reorderFrames(int oldIndex, int newIndex) {
+    setState(() {
+      final p = capturedPhotos.removeAt(oldIndex);
+      capturedPhotos.insert(newIndex.clamp(0, capturedPhotos.length), p);
+      if (oldIndex < _frameIds.length) {
+        final id = _frameIds.removeAt(oldIndex);
+        _frameIds.insert(newIndex.clamp(0, _frameIds.length), id);
+      }
+      selectedIndex = null;
+    });
+    _persistDraft();
+  }
+
+  void _duplicateFrame(int i) {
+    setState(() {
+      // Nuevo XFile (misma ruta) para no colisionar claves; el id (bytes) se
+      // comparte, así que no se duplica el almacenamiento.
+      capturedPhotos.insert(i + 1, XFile(capturedPhotos[i].path));
+      _frameIds.insert(
+          i + 1, i < _frameIds.length ? _frameIds[i] : null);
+      selectedIndex = null;
+      lastCapturedPhoto = capturedPhotos.last;
+    });
+    _persistDraft();
+  }
+
+  void _deleteFrameWithUndo(int i) {
+    if (i < 0 || i >= capturedPhotos.length) return;
+    final removedPhoto = capturedPhotos[i];
+    final removedId = i < _frameIds.length ? _frameIds[i] : null;
+    setState(() {
+      capturedPhotos.removeAt(i);
+      if (i < _frameIds.length) _frameIds.removeAt(i);
+      selectedIndex = null;
+      lastCapturedPhoto = capturedPhotos.isEmpty ? null : capturedPhotos.last;
+    });
+    _persistDraft();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Cuadro borrado',
+            style: TextStyle(fontFamily: 'Lexend')),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'DESHACER',
+          textColor: AppColors.primary,
+          onPressed: () {
+            setState(() {
+              capturedPhotos.insert(
+                  i.clamp(0, capturedPhotos.length), removedPhoto);
+              _frameIds.insert(i.clamp(0, _frameIds.length), removedId);
+              lastCapturedPhoto = capturedPhotos.last;
+            });
+            _persistDraft();
+          },
+        ),
+      ),
+    );
   }
 
   void _handleSaveAction() {
@@ -624,13 +685,38 @@ class _CameraPageState extends State<CameraPage> {
                 children: [
                   Expanded(
                     child: Slider(
-                      value: fps, min: 1, max: 24, divisions: 23,
+                      value: fps, min: 1, max: 30, divisions: 29,
                       activeColor: AppColors.secondary,
                       onChanged: (v) { setModalState(() => fps = v); setState(() => fps = v); },
                     ),
                   ),
                   Text('${fps.round()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
+              ),
+              Wrap(
+                spacing: 8,
+                children: [6, 8, 12, 15, 24].map((v) {
+                  final sel = fps.round() == v;
+                  return GestureDetector(
+                    onTap: () {
+                      setModalState(() => fps = v.toDouble());
+                      setState(() => fps = v.toDouble());
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.secondary : Colors.white10,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('$v',
+                          style: TextStyle(
+                              color: sel ? Colors.black : Colors.white70,
+                              fontFamily: 'Lexend',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
+                    ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 20),
               const Text('PAPEL CEBOLLA',
@@ -750,6 +836,9 @@ class _CameraPageState extends State<CameraPage> {
                   capturedPhotos: capturedPhotos,
                   selectedIndex: selectedIndex,
                   onPhotoTap: (i) => setState(() => selectedIndex = i),
+                  onReorder: _reorderFrames,
+                  onDuplicate: _duplicateFrame,
+                  onDelete: _deleteFrameWithUndo,
                 ),
               ],
             ),
