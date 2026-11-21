@@ -80,6 +80,15 @@ void main() {
     expect((h.width / h.height - 16 / 9).abs() < 0.02, isTrue);
   });
 
+  test('la salida no lleva metadatos EXIF (ni ubicación)', () {
+    final src = img.Image(width: 100, height: 100);
+    img.fill(src, color: img.ColorRgb8(5, 5, 5));
+    src.exif.imageIfd.orientation = 3; // metadato de origen
+    final out = compressFrameJpeg(Uint8List.fromList(img.encodeJpg(src)));
+    final dec = img.decodeJpg(out)!;
+    expect(dec.exif.isEmpty, isTrue, reason: 'EXIF/GPS descartados');
+  });
+
   test('salida JPEG para una entrada JPEG normal', () {
     final src = img.Image(width: 100, height: 100);
     img.fill(src, color: img.ColorRgb8(123, 222, 64));

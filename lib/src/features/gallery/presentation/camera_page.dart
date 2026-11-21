@@ -512,17 +512,10 @@ class _CameraPageState extends State<CameraPage> {
             _exportOption(
               icon: Icons.folder_zip_rounded,
               title: 'Secuencia de Imágenes',
-              subtitle: kIsWeb
-                  ? '🛠️ En corrección — disponible pronto'
-                  : 'Todos los frames en un archivo .zip',
+              subtitle: 'Todos los frames en un archivo .zip',
               color: AppColors.green,
               onTap: () {
                 Navigator.pop(context);
-                if (kIsWeb) {
-                  _showSnack('ZIP en corrección 🛠️ — disponible pronto',
-                      AppColors.green);
-                  return;
-                }
                 _askFilenameAndExport(ExportFormat.imageSequence, 'zip');
               },
             ),

@@ -46,6 +46,9 @@ Uint8List compressFrameJpeg(
     }
   }
 
+  // 4) Sin metadatos: se descartan EXIF/GPS (ubicación) al recodificar.
+  image.exif = img.ExifData();
+
   return img.encodeJpg(image, quality: quality);
 }
 

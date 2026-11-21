@@ -53,6 +53,7 @@ class VideoCreator {
         img.Image? frame = img.decodeImage(bytes);
         if (frame != null) {
           if (frame.width > 720) frame = img.copyResize(frame, width: 720);
+          _applyWatermark(frame);
           encoder.addFrame(frame);
           added++;
         }
@@ -165,7 +166,12 @@ class VideoCreator {
     for (int i = 0; i < imagePaths.length; i++) {
       onProgress((i + 1) / imagePaths.length * 0.85);
       try {
-        final bytes = await _fetchBytes(imagePaths[i]);
+        final raw = await _fetchBytes(imagePaths[i]);
+        final decoded = img.decodeImage(raw);
+        final bytes = decoded != null
+            ? Uint8List.fromList(
+                img.encodeJpg(_applyWatermark(decoded), quality: 90))
+            : raw;
         final frameName = 'frame_${(i + 1).toString().padLeft(3, '0')}.jpg';
         archive.addFile(ArchiveFile(frameName, bytes.length, bytes));
       } catch (e) {
@@ -203,6 +209,19 @@ class VideoCreator {
       return (await http.get(Uri.parse(path))).bodyBytes;
     }
     return await File(path).readAsBytes();
+  }
+
+  /// Marca de agua "BlackQuack" (plan gratis) abajo a la izquierda.
+  static img.Image _applyWatermark(img.Image im) {
+    img.drawString(
+      im,
+      'BlackQuack',
+      font: img.arial24,
+      x: 8,
+      y: im.height - 30,
+      color: img.ColorRgba8(255, 255, 255, 200),
+    );
+    return im;
   }
 
   static void _downloadWeb(Uint8List bytes, String mime, String filename) {
