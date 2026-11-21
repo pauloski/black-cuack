@@ -46,7 +46,7 @@ class HomePage extends StatelessWidget {
                 colors: [
                   AppColors.background,
                   AppColors.background,
-                  AppColors.background.withOpacity(0.7),
+                  AppColors.background.withValues(alpha: 0.7),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.38, 0.55, 0.72],
@@ -121,19 +121,40 @@ class HomePage extends StatelessWidget {
                       SizedBox(width: double.infinity, child: _MyProjectsButton()),
 
                       const SizedBox(height: 16),
-                      // Ajustes — discreto
-                      TextButton.icon(
-                        onPressed: () => Navigator.pushNamed(context, '/profile'),
-                        icon: const Icon(Icons.settings_outlined,
-                            size: 13, color: Colors.white24),
-                        label: const Text('Ajustes',
-                            style: TextStyle(
-                                color: Colors.white24,
-                                fontFamily: 'Lexend',
-                                fontSize: 12)),
-                        style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            alignment: Alignment.centerLeft),
+                      Row(
+                        children: [
+                          // Cambiar de perfil — vuelve a "¿Quién anima?"
+                          TextButton.icon(
+                            onPressed: () => Navigator.pushReplacementNamed(
+                                context, '/profiles'),
+                            icon: const Icon(Icons.switch_account_rounded,
+                                size: 15, color: AppColors.secondary),
+                            label: const Text('Cambiar perfil',
+                                style: TextStyle(
+                                    color: AppColors.secondary,
+                                    fontFamily: 'Lexend',
+                                    fontSize: 12)),
+                            style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                alignment: Alignment.centerLeft),
+                          ),
+                          const SizedBox(width: 16),
+                          // Ajustes — discreto
+                          TextButton.icon(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/profile'),
+                            icon: const Icon(Icons.settings_outlined,
+                                size: 13, color: Colors.white24),
+                            label: const Text('Ajustes',
+                                style: TextStyle(
+                                    color: Colors.white24,
+                                    fontFamily: 'Lexend',
+                                    fontSize: 12)),
+                            style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                alignment: Alignment.centerLeft),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -300,7 +321,7 @@ class _NewProjectButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.25),
+              color: AppColors.primary.withValues(alpha: 0.25),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -340,7 +361,7 @@ class _MyProjectsButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.white12),
         ),
@@ -406,6 +427,27 @@ class _WorkspacePageState extends State<_WorkspacePage> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cast_rounded,
+                color: AppColors.primary, size: 24),
+            tooltip: 'Proyectar todo',
+            onPressed: () async {
+              final all = (await projectRepository.loadProjects())
+                  .where((p) =>
+                      p.photoPaths.isNotEmpty &&
+                      p.parentId == null &&
+                      p.ownerProfileId == activeProfileId)
+                  .toList();
+              if (!context.mounted) return;
+              if (all.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('No hay proyectos para proyectar')));
+                return;
+              }
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ProjectionPage(projects: all)));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.account_circle_rounded, color: AppColors.secondary, size: 26),
             onPressed: () => Navigator.pushNamed(context, '/profile'),
@@ -511,7 +553,7 @@ class _ProjectsTab extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [AppColors.background.withOpacity(0), AppColors.background],
+                colors: [AppColors.background.withValues(alpha: 0), AppColors.background],
                 stops: const [0.0, 0.45],
               ),
             ),
@@ -528,7 +570,7 @@ class _ProjectsTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 12, offset: const Offset(0, 4),
                     ),
                   ],
@@ -629,7 +671,7 @@ class _GroupsTabState extends State<_GroupsTab> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppColors.background.withOpacity(0), AppColors.background],
+          colors: [AppColors.background.withValues(alpha: 0), AppColors.background],
           stops: const [0.0, 0.45],
         ),
       ),
@@ -644,7 +686,7 @@ class _GroupsTabState extends State<_GroupsTab> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: AppColors.primary.withOpacity(0.25),
+                    BoxShadow(color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 12, offset: const Offset(0, 4)),
                   ],
                 ),
@@ -668,7 +710,7 @@ class _GroupsTabState extends State<_GroupsTab> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white12),
                 ),
@@ -833,7 +875,7 @@ class _GroupCard extends StatelessWidget {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.hub_rounded,
@@ -859,7 +901,7 @@ class _GroupCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.12),
+                      color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text('admin',
@@ -873,59 +915,6 @@ class _GroupCard extends StatelessWidget {
           ),
           const Divider(height: 1, thickness: 1, color: Colors.white10),
         ],
-      ),
-    );
-  }
-}
-
-
-// ── (unused stub kept for route compatibility) ────────────────────────────────
-class _ProjectsListPage extends StatelessWidget {
-  const _ProjectsListPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white70),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'MIS PROYECTOS',
-          style: TextStyle(fontFamily: 'Lexend', color: AppColors.primary, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.slideshow_rounded,
-                color: Colors.white70, size: 24),
-            tooltip: 'Proyectar todo',
-            onPressed: () async {
-              final all = (await projectRepository.loadProjects())
-                  .where((p) =>
-                      p.photoPaths.isNotEmpty &&
-                      p.parentId == null &&
-                      p.ownerProfileId == activeProfileId)
-                  .toList();
-              if (!context.mounted || all.isEmpty) return;
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => ProjectionPage(projects: all)));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 26),
-            tooltip: 'Nuevo proyecto',
-            onPressed: () => startNewProjectFlow(context),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        child: ProjectGridView(),
       ),
     );
   }

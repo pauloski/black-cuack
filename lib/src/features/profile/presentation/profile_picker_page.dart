@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
@@ -42,6 +44,15 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
     Navigator.pushReplacementNamed(context, '/home');
   }
 
+  /// Al tocar un perfil: si tiene clave, se pide; si no (perfil antiguo), entra.
+  void _onProfileTap(Profile p) {
+    if (p.imageKey.length == 3) {
+      _showKeyEntry(p);
+    } else {
+      _enter(p);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,61 +69,409 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
           ? const Center(
               child: CircularProgressIndicator(
                   color: AppColors.primary, strokeWidth: 2))
-          : GridView.count(
-              crossAxisCount: 3,
-              padding: const EdgeInsets.all(24),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
+          : Column(
               children: [
-                ..._profiles.map((p) => _profileTile(p)),
-                _createTile(),
+                const SizedBox(height: 8),
+                Text(
+                  _profiles.isEmpty
+                      ? 'Crea tu perfil para empezar'
+                      : 'Toca tu perfil para entrar',
+                  style: const TextStyle(
+                      color: Colors.white54,
+                      fontFamily: 'Lexend',
+                      fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 20,
+                        runSpacing: 20,
+                        children: [
+                          ..._profiles.map((p) => _profileTile(p)),
+                          _createTile(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
     );
   }
 
   Widget _profileTile(Profile p) {
-    return GestureDetector(
-      onTap: () => _enter(p),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: AppColors.surface,
-            child: Text(p.avatar, style: const TextStyle(fontSize: 36)),
-          ),
-          const SizedBox(height: 8),
-          Text(p.nickname,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white70, fontFamily: 'Lexend', fontSize: 13)),
-        ],
+    return SizedBox(
+      width: 92,
+      child: GestureDetector(
+        onTap: () => _onProfileTap(p),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: AppColors.surface,
+              child: Text(p.avatar, style: const TextStyle(fontSize: 36)),
+            ),
+            const SizedBox(height: 8),
+            Text(p.nickname,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white70, fontFamily: 'Lexend', fontSize: 13)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _createTile() {
+    return SizedBox(
+      width: 92,
+      child: GestureDetector(
+        onTap: _showCreate,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: AppColors.surface,
+              child: const Icon(Icons.add_rounded,
+                  color: AppColors.primary, size: 36),
+            ),
+            const SizedBox(height: 8),
+            const Text('Crear perfil',
+                style: TextStyle(
+                    color: Colors.white38, fontFamily: 'Lexend', fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Celda de un dibujo de la clave (con insignia de orden si está elegido) ──
+  Widget _keyIconTile({
+    required int index,
+    required int order, // -1 si no está elegido
+    required VoidCallback onTap,
+  }) {
+    final selected = order != -1;
     return GestureDetector(
-      onTap: _showCreate,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: AppColors.surface,
-            child: const Icon(Icons.add_rounded,
-                color: AppColors.primary, size: 36),
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.primary.withValues(alpha: 0.25)
+                  : AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? AppColors.primary : Colors.white10,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            // El dibujo SIEMPRE se ve; el número es una insignia encima.
+            child: Text(_keyIcons[index], style: const TextStyle(fontSize: 24)),
           ),
-          const SizedBox(height: 8),
-          const Text('Crear perfil',
-              style: TextStyle(
-                  color: Colors.white38, fontFamily: 'Lexend', fontSize: 13)),
+          if (selected)
+            Positioned(
+              top: -6,
+              right: -6,
+              child: Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Text('${order + 1}',
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  // ── Entrada con clave de imágenes ──────────────────────────────────────────
+  void _showKeyEntry(Profile p) {
+    final entered = <int>[];
+    bool error = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(
+              left: 20, right: 20, top: 20, bottom: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.surface,
+                child: Text(p.avatar, style: const TextStyle(fontSize: 30)),
+              ),
+              const SizedBox(height: 8),
+              Text(p.nickname,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Lexend',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              Text(
+                error
+                    ? 'Esa no es tu clave. Intenta de nuevo.'
+                    : 'Toca tus 3 dibujos en orden',
+                style: TextStyle(
+                    color: error ? AppColors.danger : Colors.white54,
+                    fontFamily: 'Lexend',
+                    fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: List.generate(_keyIcons.length, (i) {
+                  return _keyIconTile(
+                    index: i,
+                    order: entered.indexOf(i),
+                    onTap: () {
+                      setSheet(() {
+                        error = false;
+                        if (entered.contains(i)) {
+                          entered.remove(i);
+                        } else if (entered.length < 3) {
+                          entered.add(i);
+                        }
+                      });
+                      if (entered.length == 3) {
+                        final ok = _listEq(entered, p.imageKey);
+                        if (ok) {
+                          Navigator.pop(ctx);
+                          _enter(p);
+                        } else {
+                          setSheet(() {
+                            error = true;
+                            entered.clear();
+                          });
+                        }
+                      }
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _forgotKey(p);
+                },
+                child: const Text('¿Olvidaste tu clave?',
+                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Recuperar clave: confirmación de adulto + elegir clave nueva ───────────
+  Future<void> _forgotKey(Profile p) async {
+    final ok = await _adultGate();
+    if (!ok || !mounted) return;
+    final newKey = await _pickKey(
+      title: 'Elige una clave nueva para ${p.nickname}',
+    );
+    if (newKey == null || !mounted) return;
+    // Mismo id → los proyectos del perfil se conservan.
+    await ProfileService.save(Profile(
+      id: p.id,
+      nickname: p.nickname,
+      avatar: p.avatar,
+      imageKey: newKey,
+    ));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Nueva clave de ${p.nickname}: ${newKey.map((i) => _keyIcons[i]).join(' ')}',
+            style: const TextStyle(fontFamily: 'Lexend')),
+        backgroundColor: AppColors.green,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    _load();
+  }
+
+  /// Confirmación de adulto sencilla: una suma. Evita que un niño cambie la
+  /// clave de otro sin ayuda.
+  Future<bool> _adultGate() async {
+    final a = 3 + Random().nextInt(6); // 3..8
+    final b = 4 + Random().nextInt(6); // 4..9
+    final ctrl = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('AYUDA DE UN ADULTO',
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.primary, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Para cambiar la clave, resuelve:',
+                style: TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 10),
+            Text('$a + $b = ?',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Lexend',
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              onSubmitted: (v) =>
+                  Navigator.pop(ctx, int.tryParse(v.trim()) == a + b),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child:
+                  const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () =>
+                Navigator.pop(ctx, int.tryParse(ctrl.text.trim()) == a + b),
+            child: const Text('CONTINUAR',
+                style:
+                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (result == true) return true;
+    if (result == false && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Respuesta incorrecta'),
+        backgroundColor: AppColors.danger,
+      ));
+    }
+    return false;
+  }
+
+  /// Hoja reutilizable para elegir 3 dibujos en orden. Devuelve los índices.
+  Future<List<int>?> _pickKey({required String title}) {
+    final key = <int>[];
+    return showModalBottomSheet<List<int>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: AppColors.primary,
+                      fontFamily: 'Lexend',
+                      fontSize: 15)),
+              const SizedBox(height: 6),
+              Text('Toca 3 dibujos en orden · ${key.length}/3',
+                  style:
+                      const TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 12,
+                children: List.generate(_keyIcons.length, (i) {
+                  return _keyIconTile(
+                    index: i,
+                    order: key.indexOf(i),
+                    onTap: () => setSheet(() {
+                      if (key.contains(i)) {
+                        key.remove(i);
+                      } else if (key.length < 3) {
+                        key.add(i);
+                      }
+                    }),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                  onPressed: key.length == 3
+                      ? () => Navigator.pop(ctx, List<int>.of(key))
+                      : null,
+                  child: const Text('LISTO',
+                      style: TextStyle(
+                          color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _listEq(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  // ── Crear perfil ────────────────────────────────────────────────────────────
   void _showCreate() {
     final nameCtrl = TextEditingController();
     String avatar = _avatars.first;
@@ -181,38 +540,40 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
                         const TextStyle(color: Colors.white54, fontSize: 12)),
                 const SizedBox(height: 8),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 12,
                   children: List.generate(_keyIcons.length, (i) {
-                    final order = key.indexOf(i);
-                    final sel = order != -1;
-                    return GestureDetector(
+                    return _keyIconTile(
+                      index: i,
+                      order: key.indexOf(i),
                       onTap: () => setSheet(() {
-                        if (sel) {
+                        if (key.contains(i)) {
                           key.remove(i);
                         } else if (key.length < 3) {
                           key.add(i);
                         }
                       }),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: sel ? AppColors.primary : AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          sel ? '${order + 1}' : _keyIcons[i],
-                          style: TextStyle(
-                              fontSize: sel ? 18 : 22,
-                              color: sel ? Colors.black : null,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
                     );
                   }),
                 ),
+                if (key.length == 3) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Tu clave es: ${key.map((i) => _keyIcons[i]).join(' ')}  ¡Recuérdala!',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Lexend',
+                          fontSize: 14),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
