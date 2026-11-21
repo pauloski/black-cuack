@@ -5,21 +5,21 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="BlackQuack Studio - Animation Workshop">
+  <meta name="description" content="BlackQuack Studio - Taller de animación cuadro a cuadro">
 
   <!-- Demo privada: evitar que los buscadores la indexen -->
   <meta name="robots" content="noindex, nofollow">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="blackcuack_studio">
+  <meta name="apple-mobile-web-app-title" content="BlackQuack Studio">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- SVG favicon (Chrome, Firefox, Edge) with PNG fallback (Safari) -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Blackcuack Studio</title>
+  <title>BlackQuack Studio</title>
   <link rel="manifest" href="manifest.json">
 
   <!-- FFmpeg.wasm bridge — loaded on demand when user exports MP4 -->
@@ -63,22 +63,16 @@
       };
     })();
   </script>
+
+  <!--
+    Arranque estándar de Flutter. En el deploy, scripts/deploy_demo.sh reemplaza
+    el service worker por un "kill-switch" (borra cachés y se da de baja, sin
+    interceptar la red) y _headers sirve el punto de entrada sin caché. Así una
+    demo que se redespliega seguido trae siempre el build más reciente sin recargar.
+    (El modo sin conexión del MVP vive en la app Android; la web es solo para demos.)
+  -->
+  <script src="flutter_bootstrap.js" async></script>
 </head>
 <body>
-  <script>
-    // ✅ Hemos eliminado {{footer_script}} para evitar errores de ReferenceError
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.loadEntrypoint({
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine({
-            renderer: "html" // 🦆 FUERZA EL RENDERIZADOR PARA VER LAS FOTOS
-          }).then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

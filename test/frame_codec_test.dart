@@ -89,6 +89,16 @@ void main() {
     expect(dec.exif.isEmpty, isTrue, reason: 'EXIF/GPS descartados');
   });
 
+  test('bytes no decodificables: devuelve la entrada sin lanzar (no pierde cuadro)',
+      () {
+    final garbage = Uint8List.fromList(
+        List<int>.generate(64, (i) => (i * 7 + 3) % 256));
+    late Uint8List out;
+    expect(() => out = compressFrameJpeg(garbage, aspect: aspectValue('9:16')),
+        returnsNormally);
+    expect(out, garbage, reason: 'se guarda el cuadro original como respaldo');
+  });
+
   test('salida JPEG para una entrada JPEG normal', () {
     final src = img.Image(width: 100, height: 100);
     img.fill(src, color: img.ColorRgb8(123, 222, 64));

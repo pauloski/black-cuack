@@ -225,6 +225,29 @@ class _ProjectCard extends StatelessWidget {
               ),
             ],
           ),
+          if (project.isDraft)
+            Positioned(
+              top: 6,
+              left: 6,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'BORRADOR',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontFamily: 'Lexend',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 9,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 6,
             right: 6,

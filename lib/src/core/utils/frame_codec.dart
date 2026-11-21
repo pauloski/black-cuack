@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:image/image.dart' as img;
 
 /// Comprime un cuadro a JPEG para la demo local:
@@ -18,38 +19,46 @@ Uint8List compressFrameJpeg(
   int quality = 85,
   double? aspect,
 }) {
-  var image = img.decodeImage(input);
-  if (image == null) return input;
+  // Blindaje: un cuadro NUNCA se pierde por un fallo de compresión. Si cualquier
+  // paso del códec lanza (formato raro de cámara web, memoria, etc.), se devuelve
+  // la imagen original tal cual. Así "Guardar" nunca falla por la compresión.
+  try {
+    var image = img.decodeImage(input);
+    if (image == null) return input;
 
-  // 1) Orientación EXIF aplicada a los píxeles.
-  image = img.bakeOrientation(image);
+    // 1) Orientación EXIF aplicada a los píxeles.
+    image = img.bakeOrientation(image);
 
-  // 2) Aplanar alfa sobre blanco.
-  if (image.hasAlpha) {
-    final bg = img.Image(width: image.width, height: image.height);
-    img.fill(bg, color: img.ColorRgb8(255, 255, 255));
-    image = img.compositeImage(bg, image);
-  }
-
-  // 2b) Recorte centrado a la relación de aspecto del proyecto (HDU2).
-  if (aspect != null) {
-    image = _cropToAspect(image, aspect);
-  }
-
-  // 3) Reducir el lado mayor a maxSide (nunca ampliar).
-  final longest = image.width >= image.height ? image.width : image.height;
-  if (longest > maxSide) {
-    if (image.width >= image.height) {
-      image = img.copyResize(image, width: maxSide);
-    } else {
-      image = img.copyResize(image, height: maxSide);
+    // 2) Aplanar alfa sobre blanco.
+    if (image.hasAlpha) {
+      final bg = img.Image(width: image.width, height: image.height);
+      img.fill(bg, color: img.ColorRgb8(255, 255, 255));
+      image = img.compositeImage(bg, image);
     }
+
+    // 2b) Recorte centrado a la relación de aspecto del proyecto (HDU2).
+    if (aspect != null) {
+      image = _cropToAspect(image, aspect);
+    }
+
+    // 3) Reducir el lado mayor a maxSide (nunca ampliar).
+    final longest = image.width >= image.height ? image.width : image.height;
+    if (longest > maxSide) {
+      if (image.width >= image.height) {
+        image = img.copyResize(image, width: maxSide);
+      } else {
+        image = img.copyResize(image, height: maxSide);
+      }
+    }
+
+    // 4) Sin metadatos: se descartan EXIF/GPS (ubicación) al recodificar.
+    image.exif = img.ExifData();
+
+    return img.encodeJpg(image, quality: quality);
+  } catch (e) {
+    debugPrint('⚠️ compresión falló; se guarda el cuadro original: $e');
+    return input;
   }
-
-  // 4) Sin metadatos: se descartan EXIF/GPS (ubicación) al recodificar.
-  image.exif = img.ExifData();
-
-  return img.encodeJpg(image, quality: quality);
 }
 
 /// Recorte centrado a la relación [aspect] (ancho/alto).

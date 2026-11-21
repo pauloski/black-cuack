@@ -1,4 +1,27 @@
-# Cloudflare Pages headers.
-# Demo privada: pedir a los buscadores que NO la indexen en todas las respuestas.
+# Cabeceras de Cloudflare Pages para la demo.
+#
+# La demo se redespliega seguido y los evaluadores NO van a recargar: el punto de
+# entrada y el arranque de Flutter se sirven SIN caché, para que cada visita traiga
+# el build más reciente. Los recursos con hash/estables (CanvasKit, fuentes) sí se
+# cachean. El service worker se neutraliza en el deploy (ver scripts/deploy_demo.sh).
+
 /*
   X-Robots-Tag: noindex, nofollow
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/flutter_bootstrap.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/flutter_service_worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/main.dart.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/flutter.js
+  Cache-Control: no-cache, no-store, must-revalidate
