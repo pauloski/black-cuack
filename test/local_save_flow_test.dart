@@ -97,4 +97,31 @@ void main() {
     // El tercero es un id nuevo y distinto.
     expect(originalIds.contains(second.photoPaths[2]), isFalse);
   });
+
+  test('borrador: sus cuadros NO son huérfanos y "guardar" lo finaliza',
+      () async {
+    final id1 = await repo.addFrame(_png(400, 400));
+    await saveDraft(repo, id: 'd1', frameIds: [id1]);
+
+    final draft = await repo.getProject('d1');
+    expect(draft, isNotNull);
+    expect(draft!.isDraft, isTrue);
+
+    // Los cuadros del borrador están referenciados → no se podan.
+    final removed = await repo.pruneOrphanFrames();
+    expect(removed, 0);
+    expect(await repo.loadFrameBytes(id1), isNotNull);
+
+    // "Guardar" (poner nombre/artista) finaliza el borrador.
+    final fin = await saveCapturedProject(
+      repo,
+      id: 'd1',
+      name: 'Mi obra',
+      artistName: 'Pato',
+      frames: [CapturedFrame.existing(id1)],
+      isDraft: false,
+    );
+    expect(fin.isDraft, isFalse);
+    expect((await repo.getProject('d1'))!.isDraft, isFalse);
+  });
 }

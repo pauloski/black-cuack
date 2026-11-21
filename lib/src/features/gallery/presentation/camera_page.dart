@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:blackcuack_studio/main.dart' show navigatorKey;
+import 'package:blackcuack_studio/src/core/config/debug_flags.dart';
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
@@ -51,6 +52,8 @@ class _CameraPageState extends State<CameraPage> {
   // se comprime y se guarda en el repo de a uno; el guardado espera la cola.
   Future<void> _compressQueue = Future.value();
   int _pendingCompressions = 0;
+  // Id estable del proyecto (borrador en curso o proyecto que se reabre).
+  late final String _projectId;
   XFile? lastCapturedPhoto;
   double onionOpacity = 0.3;
   int _onionLayers = 1;
@@ -73,9 +76,26 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
+    _projectId = isEditing
+        ? widget.projectToLoad!.id
+        : DateTime.now().millisecondsSinceEpoch.toString();
     _initCamera();
     if (isEditing) {
       _hydrateFromProject();
+    }
+  }
+
+  /// Persiste el borrador en curso (solo proyectos nuevos): un proyecto isDraft
+  /// con los ids ya comprimidos. Así un cierre inesperado no pierde el trabajo y
+  /// los cuadros no cuentan como huérfanos.
+  Future<void> _persistDraft() async {
+    if (isEditing) return;
+    final ids = _frameIds.whereType<String>().toList();
+    if (ids.isEmpty) return;
+    try {
+      await saveDraft(projectRepository, id: _projectId, frameIds: ids);
+    } catch (e) {
+      debugPrint('No se pudo persistir el borrador: $e');
     }
   }
 
@@ -169,10 +189,12 @@ class _CameraPageState extends State<CameraPage> {
       final jpeg = compressFrameJpeg(raw);
       sw.stop();
       debugPrint('⏱️ compresión (captura): ${sw.elapsedMilliseconds} ms/cuadro');
+      compressionDebug.value = '${sw.elapsedMilliseconds} ms/cuadro';
       final id = await projectRepository.addFrame(jpeg);
       final idx = capturedPhotos.indexOf(file);
       if (idx != -1 && idx < _frameIds.length) {
         _frameIds[idx] = id;
+        await _persistDraft(); // borrador incremental (HDU1)
       }
       // Si el cuadro se borró antes de comprimirse, queda huérfano y lo limpia
       // pruneOrphanFrames (>24h) en el próximo arranque.
@@ -254,18 +276,15 @@ class _CameraPageState extends State<CameraPage> {
           frames.add(CapturedFrame.raw(await capturedPhotos[i].readAsBytes()));
         }
       }
-      final projId = isEditing
-          ? widget.projectToLoad!.id
-          : DateTime.now().millisecondsSinceEpoch.toString();
-
       await saveCapturedProject(
         projectRepository,
-        id: projId,
+        id: _projectId,
         name: name,
         artistName: artist,
         frames: frames,
         isPublished: isPublished,
         workshopCode: groupCode,
+        isDraft: false, // "Guardar" finaliza el borrador
       );
 
       _quackSavedToast();
@@ -683,6 +702,28 @@ class _CameraPageState extends State<CameraPage> {
           ),
         ),
         if (_isExporting) _buildExportOverlay(),
+        if (kShowDebugOverlay)
+          Positioned(
+            left: 8,
+            bottom: 8,
+            child: IgnorePointer(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                color: Colors.black.withValues(alpha: 0.6),
+                child: ValueListenableBuilder<String>(
+                  valueListenable: compressionDebug,
+                  builder: (_, v, _) => Text(
+                    '⏱️ $v',
+                    style: const TextStyle(
+                        color: Color(0xFF3CCF7A),
+                        fontFamily: 'Lexend',
+                        fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

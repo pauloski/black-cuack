@@ -7,6 +7,9 @@ class QuackProject {
   final bool isPublished;
   final String? workshopCode;
   final String userId; // ✅ Agregamos el campo de ID de usuario
+  // Borrador: proyecto en curso aún sin "Guardar" (título/artista). Protege sus
+  // cuadros de la limpieza de huérfanos y permite reabrir tras un cierre.
+  final bool isDraft;
 
   QuackProject({
     required this.id,
@@ -17,6 +20,7 @@ class QuackProject {
     this.isPublished = false,
     this.workshopCode,
     this.userId = '', // ✅ Valor por defecto por si acaso
+    this.isDraft = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +32,7 @@ class QuackProject {
     'isPublished': isPublished,
     'workshopCode': workshopCode,
     'userId': userId, // ✅ Lo incluimos en el mapa de salida
+    'isDraft': isDraft,
   };
 
   factory QuackProject.fromJson(Map<String, dynamic> json) {
@@ -47,6 +52,7 @@ class QuackProject {
       isPublished: json['isPublished'] ?? false,
       workshopCode: json['workshopCode'],
       userId: json['userId'] ?? '', // ✅ Lo recuperamos de Firebase
+      isDraft: json['isDraft'] ?? false,
     );
   }
 }
