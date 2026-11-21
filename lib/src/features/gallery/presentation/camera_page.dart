@@ -349,6 +349,117 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
+  // ── Versiones (HDU5) ───────────────────────────────────────────────────────
+  Future<void> _saveVersion() async {
+    await _compressQueue;
+    final ids = _frameIds.whereType<String>().toList();
+    if (ids.isEmpty) {
+      _showSnack('Captura algunos cuadros primero', AppColors.danger);
+      return;
+    }
+    await saveVersion(projectRepository,
+        parentId: _projectId,
+        frameIds: ids,
+        author: widget.projectToLoad?.artistName ?? '',
+        aspect: _aspect);
+    if (mounted) _showSnack('Versión guardada 📑', AppColors.secondary);
+  }
+
+  Future<void> _restoreVersion(QuackProject version) async {
+    final photos = <XFile>[];
+    final ids = <String?>[];
+    for (final id in version.photoPaths) {
+      final bytes = await projectRepository.loadFrameBytes(id);
+      if (bytes == null) continue;
+      final s = await sessionImageFromBytes(bytes);
+      _sessionImages.add(s);
+      photos.add(s.file);
+      ids.add(id);
+    }
+    if (!mounted) return;
+    setState(() {
+      capturedPhotos = photos;
+      _frameIds = ids;
+      selectedIndex = null;
+      lastCapturedPhoto = photos.isNotEmpty ? photos.last : null;
+    });
+    _showSnack('Versión restaurada', AppColors.primary);
+  }
+
+  void _showVersions() async {
+    final versions = await listVersions(projectRepository, _projectId);
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('HISTORIAL DE VERSIONES',
+                style: TextStyle(
+                    color: AppColors.primary, fontFamily: 'Lexend', fontSize: 16)),
+            const SizedBox(height: 16),
+            if (versions.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('Aún no hay versiones. Toca "Guardar versión".',
+                    style: TextStyle(color: Colors.white38, fontSize: 13)),
+              )
+            else
+              ...versions.map((v) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.bookmark_rounded,
+                        color: AppColors.secondary),
+                    title: Text(
+                        '${v.date.day}/${v.date.month} ${v.date.hour}:${v.date.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(
+                            color: Colors.white, fontFamily: 'Lexend', fontSize: 13)),
+                    subtitle: Text('${v.photoPaths.length} cuadros',
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 11)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _restoreVersion(v);
+                          },
+                          child: const Text('RESTAURAR',
+                              style: TextStyle(
+                                  color: AppColors.primary, fontSize: 11)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy_rounded,
+                              color: Colors.white54, size: 18),
+                          tooltip: 'Duplicar versión',
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await saveVersion(projectRepository,
+                                parentId: _projectId,
+                                frameIds: v.photoPaths,
+                                author: v.artistName,
+                                aspect: _aspect);
+                            if (mounted) {
+                              _showSnack('Versión duplicada', AppColors.secondary);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleSaveAction() {
     if (capturedPhotos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -888,6 +999,19 @@ class _CameraPageState extends State<CameraPage> {
                 const Icon(Icons.edit_outlined, color: Colors.white24, size: 13),
               ],
             ),
+          ),
+          IconButton(
+            icon: Icon(Icons.bookmark_add_outlined,
+                color: hasPhotos ? AppColors.secondary : Colors.white24,
+                size: 20),
+            onPressed: hasPhotos ? _saveVersion : null,
+            tooltip: 'Guardar versión',
+          ),
+          IconButton(
+            icon: const Icon(Icons.history_rounded,
+                color: Colors.white60, size: 20),
+            onPressed: _showVersions,
+            tooltip: 'Versiones',
           ),
           IconButton(
             icon: Icon(

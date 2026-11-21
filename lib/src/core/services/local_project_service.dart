@@ -99,3 +99,35 @@ Future<QuackProject> saveDraft(
   );
   return repo.saveProject(project);
 }
+
+/// Guarda una **versión** (snapshot) del proyecto [parentId]. Comparte los
+/// cuadros por id (no duplica bytes). Registra fecha, autor y nº de cuadros
+/// (= photoPaths.length).
+Future<QuackProject> saveVersion(
+  ProjectRepository repo, {
+  required String parentId,
+  required List<String> frameIds,
+  String author = '',
+  String aspect = '9:16',
+  String? name,
+}) async {
+  final project = QuackProject(
+    id: 'v_${DateTime.now().microsecondsSinceEpoch}',
+    name: name ?? 'Versión',
+    artistName: author,
+    photoPaths: List<String>.of(frameIds),
+    date: DateTime.now(),
+    aspect: aspect,
+    parentId: parentId,
+  );
+  return repo.saveProject(project);
+}
+
+/// Versiones de un proyecto, de la más reciente a la más antigua.
+Future<List<QuackProject>> listVersions(
+    ProjectRepository repo, String parentId) async {
+  final all = await repo.loadProjects();
+  final versions = all.where((p) => p.parentId == parentId).toList();
+  versions.sort((a, b) => b.date.compareTo(a.date));
+  return versions;
+}

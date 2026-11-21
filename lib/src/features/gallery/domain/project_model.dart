@@ -12,6 +12,9 @@ class QuackProject {
   final bool isDraft;
   // Orientación fija del proyecto: '9:16' (vertical) o '16:9' (horizontal).
   final String aspect;
+  // Si no es null, este registro es una **versión** del proyecto [parentId]
+  // (comparte cuadros por id, no se duplica el almacenamiento).
+  final String? parentId;
 
   QuackProject({
     required this.id,
@@ -24,6 +27,7 @@ class QuackProject {
     this.userId = '', // ✅ Valor por defecto por si acaso
     this.isDraft = false,
     this.aspect = '9:16',
+    this.parentId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -37,6 +41,7 @@ class QuackProject {
     'userId': userId, // ✅ Lo incluimos en el mapa de salida
     'isDraft': isDraft,
     'aspect': aspect,
+    'parentId': parentId,
   };
 
   factory QuackProject.fromJson(Map<String, dynamic> json) {
@@ -58,6 +63,7 @@ class QuackProject {
       userId: json['userId'] ?? '', // ✅ Lo recuperamos de Firebase
       isDraft: json['isDraft'] ?? false,
       aspect: json['aspect'] ?? '9:16',
+      parentId: json['parentId'],
     );
   }
 }

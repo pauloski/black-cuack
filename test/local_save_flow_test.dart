@@ -124,4 +124,26 @@ void main() {
     expect(fin.isDraft, isFalse);
     expect((await repo.getProject('d1'))!.isDraft, isFalse);
   });
+
+  test('versiones: comparten cuadros, se listan por proyecto y registran nº',
+      () async {
+    final id1 = await repo.addFrame(_png(300, 300));
+    final id2 = await repo.addFrame(_png(300, 300));
+    await saveCapturedProject(repo,
+        id: 'proj', name: 'P', artistName: 'Pato',
+        frames: [CapturedFrame.existing(id1), CapturedFrame.existing(id2)]);
+
+    await saveVersion(repo,
+        parentId: 'proj', frameIds: [id1, id2], author: 'Pato');
+    await saveVersion(repo, parentId: 'proj', frameIds: [id1], author: 'Pato');
+
+    final versions = await listVersions(repo, 'proj');
+    expect(versions.length, 2);
+    expect(versions.first.photoPaths.length, 1); // la más reciente
+    expect(versions.last.photoPaths.length, 2);
+
+    // Comparten cuadros: nada se poda (todo referenciado).
+    expect(await repo.pruneOrphanFrames(), 0);
+    expect(await repo.loadFrameBytes(id1), isNotNull);
+  });
 }
