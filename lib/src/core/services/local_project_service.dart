@@ -37,6 +37,7 @@ Future<QuackProject> saveCapturedProject(
   DateTime? date,
   bool isPublished = false,
   String? workshopCode,
+  bool isDraft = false,
 }) async {
   final ids = <String>[];
   final sw = Stopwatch();
@@ -68,6 +69,29 @@ Future<QuackProject> saveCapturedProject(
     date: date ?? DateTime.now(),
     isPublished: isPublished,
     workshopCode: workshopCode,
+    isDraft: isDraft,
+  );
+  return repo.saveProject(project);
+}
+
+/// Persiste un **borrador** incremental: un proyecto en curso (isDraft) con los
+/// ids de cuadro ya existentes en el repo. Así, tras un cierre inesperado, el
+/// trabajo no se pierde y sus cuadros no cuentan como huérfanos (están
+/// referenciados por el borrador).
+Future<QuackProject> saveDraft(
+  ProjectRepository repo, {
+  required String id,
+  required List<String> frameIds,
+  String name = 'Borrador',
+  String artistName = '',
+}) async {
+  final project = QuackProject(
+    id: id,
+    name: name,
+    artistName: artistName,
+    photoPaths: frameIds,
+    date: DateTime.now(),
+    isDraft: true,
   );
   return repo.saveProject(project);
 }
