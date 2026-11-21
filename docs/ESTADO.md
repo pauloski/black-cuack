@@ -4,9 +4,19 @@ Fecha de corte: **2026-11-21** (maratón). Rama de trabajo: `demo/semana-1`. Obj
 
 ---
 
+## Ronda de QA en producción (2026-11-21, tags `prod-20261121-9..11`)
+
+QA en `demo.blackquack.cl` (Mac/Chrome) encontró un **P0 de guardado** (y problemas de caché y UX). Correcciones desplegadas:
+
+- **P0 guardado (raíz):** `compressFrameJpeg` ahora **nunca lanza** (ante cualquier fallo del códec devuelve el cuadro original). Una sola causa rompía *guardar* ("No se pudo guardar"), *versiones* ("Captura algunos cuadros primero" con cuadros en pantalla) y el *borrador* (sin id de cuadro, no se persistía → no salía en "Mis proyectos"). (`prod-9`)
+- **P0 caché:** `index.html` tenía **doble arranque** (`loadEntrypoint` + `flutter_bootstrap`) y `renderer:"html"` obsoleto → se limpió. El deploy reemplaza el **service worker por un kill-switch** (borra cachés y se da de baja) y `_headers` sirve el punto de entrada sin caché: cada carga trae el último build **sin recargar**. (`prod-9`)
+- **P1 cámara:** deshacer real (revierte la última acción, incl. recuperar un cuadro borrado); renombrar desde el título; botón **Guardar** claro (antes "Compartir"); **PROYECTAR** visible. (`prod-10`)
+- **P1 perfiles (HDU6):** entrada con **clave de imágenes** (avatar+apodo, "Toca tus 3 dibujos en orden"); insignia de número sobre el dibujo + resumen de clave al crear; **"¿Olvidaste tu clave?"** con confirmación de adulto (sin borrar proyectos); **Cambiar perfil** y **Proyectar todo** desde Inicio. (`prod-11`)
+- **Verificación visual:** la extensión de Chrome **no estaba conectada** en esta sesión, así que no se recorrieron los ciclos en el navegador; el paso a paso para re-probar está abajo. Correcciones validadas por `flutter analyze` (sin errores), `flutter test` (24 en verde) y `flutter build web`, más `curl` a producción (200, `no-cache`, `noindex`, kill-switch activo).
+
 ## Estado final del MVP (maratón 2026-11-21)
 
-Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (sin Firebase en la ruta crítica), con tags de reversión `prod-20261121-1..8`. 18 pruebas en verde (repo, codec, modelos, versiones, borrador). `noindex` activo. Prioridad de métricas: **Android** (abrir en Chrome; medir compresión con `?debug=1`).
+Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (sin Firebase en la ruta crítica), con tags de reversión `prod-20261121-1..11`. **24 pruebas** en verde (repo, codec, modelos, versiones, borrador, ciclos con/sin perfil). `noindex` activo. Prioridad de métricas: **Android** (abrir en Chrome; medir compresión con `?debug=1`).
 
 | HDU | Función | Estado |
 |---|---|---|
@@ -15,7 +25,7 @@ Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (s
 | HDU3 · Línea de tiempo y FPS | Reordenar (arrastrar), duplicar, borrar con deshacer; FPS 1–30 + atajos 6/8/12/15/24; bucle desde cualquier cuadro | **Hecho** |
 | HDU4 · Export GIF/ZIP (/MP4) | GIF y ZIP en web/Android, sin EXIF/ubicación, marca de agua "BlackQuack" | **Parcial** (🤖 MP4 nativo pendiente; sin niveles 720/1080) |
 | HDU5 · Versiones por autor | Guardar versión (fecha/autor/nº cuadros), historial restaurar/duplicar, cuadros compartidos | **Hecho** (ejercicios de práctica, falta) |
-| HDU6 · Perfiles sin correo (local) | Apodo, avatar, clave de 3 dibujos; elegir al entrar; cada perfil ve solo sus proyectos | **Hecho** (demo local; reset de clave por docente, falta) |
+| HDU6 · Perfiles sin correo (local) | Apodo, avatar, clave de 3 dibujos; **se pide la clave al entrar**; reset de clave con confirmación de adulto (sin borrar proyectos); cambiar perfil desde Inicio; cada perfil ve solo sus proyectos | **Hecho** (demo local) |
 | HDU7 · Sala por QR / código | Código de 5 caracteres (base de `wip`); sin QR ni lista de apodos/OA | **Parcial** |
 | HDU8 · Kiosco / fijar pantalla | — | **Falta** (🤖 nativo Android) |
 | HDU9 · Grupos con roles | Galería de grupo (nube, gateada por `hasCloudAccount`); sin roles/autoría por versión | **Parcial** (fuera de alcance esta semana) |
@@ -27,19 +37,20 @@ Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (s
 
 **Pendiente operativo:** configurar **Cloudflare Access** antes de compartir fuera del equipo; investigar tree-shaking de íconos `_rounded` (hoy fuente completa +1,6 MB).
 
-## Checklist de validación en Android (producción) — 10 pasos
+## Checklist para re-probar en Mac y Android — 10 pasos
 
-Abrir **https://demo.blackquack.cl** en Chrome de Android (`?debug=1` para ver ms/cuadro):
-1. "ENTRAR AL TALLER" → **crear un perfil** (apodo, avatar, 3 dibujos) → entrar. *(correo tras "Soy docente")*
-2. "Nuevo proyecto" → elegir **Vertical u Horizontal** → la guía de encuadre respeta la orientación.
-3. Capturar **5 cuadros rápido**: el obturador responde al instante; se ve el papel cebolla.
-4. En la línea de tiempo: **arrastrar** para reordenar, **duplicar** y **borrar con DESHACER**.
-5. Ajustes: fijar FPS con un **atajo (12/15/24)**; reproducir → **bucle** desde el cuadro elegido.
-6. **Guardar versión** (📑) y abrir **Historial** (🕘) → **restaurar/duplicar**.
-7. **Guardar** (título+artista) → vuelve a Inicio → en "Mis proyectos" aparece **con miniatura**; **recargar** → persiste.
-8. Exportar **GIF** y **ZIP** → se abren con todos los cuadros, con marca de agua "BlackQuack".
-9. "Mis proyectos" → **Proyectar** (▶ pantalla completa, sin controles); tocar para salir.
-10. **Modo avión tras cargar** → crear/guardar/listar/exportar siguen; cerrar sesión y entrar con **otro perfil** → ve solo sus proyectos.
+Abrir **https://demo.blackquack.cl** (Chrome en Mac y en Android; añade `?debug=1` para ver ms/cuadro). **No hace falta recargar**: el deploy limpia la caché. En Mac, da permiso de cámara.
+
+1. "ENTRAR AL TALLER" → **Crear perfil** (apodo, avatar, 3 dibujos: el dibujo se ve con un número de insignia; al final sale el resumen "Tu clave es…"). Entra.
+2. **Vuelve a entrar con el perfil**: pide la clave (avatar+apodo, "Toca tus 3 dibujos en orden"). Prueba una clave mal (avisa) y la correcta (entra). Prueba **"¿Olvidaste tu clave?"** (suma de adulto → nueva clave; los proyectos siguen).
+3. "Nuevo proyecto" → **Vertical u Horizontal** → la guía de encuadre respeta la orientación. Renombra tocando el **título** (lápiz).
+4. Captura **5 cuadros rápido** (obturador instantáneo, papel cebolla). **Deshacer** una vez: quita el último cuadro (no borra de más).
+5. Línea de tiempo: **arrastrar** para reordenar, **duplicar**, **borrar con DESHACER**; luego **Deshacer** (↶) arriba recupera el cuadro borrado.
+6. Ajustes: atajo de **FPS (12/15/24)**; reproducir → **bucle** desde el cuadro elegido.
+7. **Guardar versión** (📑) → **Historial** (🕘) → **restaurar** y **duplicar**.
+8. Botón **Guardar** (amarillo) → título+artista → vuelve a Inicio → en "Mis proyectos" aparece **con miniatura**; **recarga la página** → sigue ahí. Sal con "atrás" de un proyecto nuevo → **Guardar borrador** → aparece con insignia **BORRADOR** y al abrirlo vuelve a la cámara.
+9. Exportar **GIF** y **ZIP** → se abren con todos los cuadros y marca de agua "BlackQuack" (nunca un archivo vacío).
+10. **Proyectar**: en el reproductor (botón **PROYECTAR**) y en "Mi espacio" (**Proyectar todo**). Borra un proyecto → no vuelve al recargar. En **modo avión tras cargar**, crear/guardar/listar/exportar siguen. **Cambiar perfil** desde Inicio → el otro perfil ve solo lo suyo.
 
 ---
 
