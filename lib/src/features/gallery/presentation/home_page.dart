@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/core/widgets/ephemeral_banner.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/pages/projection_page.dart';
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/group_details_page.dart';
@@ -895,6 +897,19 @@ class _ProjectsListPage extends StatelessWidget {
           style: TextStyle(fontFamily: 'Lexend', color: AppColors.primary, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.slideshow_rounded,
+                color: Colors.white70, size: 24),
+            tooltip: 'Proyectar todo',
+            onPressed: () async {
+              final all = (await projectRepository.loadProjects())
+                  .where((p) => p.photoPaths.isNotEmpty && p.parentId == null)
+                  .toList();
+              if (!context.mounted || all.isEmpty) return;
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ProjectionPage(projects: all)));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 26),
             tooltip: 'Nuevo proyecto',

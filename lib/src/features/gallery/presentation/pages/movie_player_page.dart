@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
+import 'package:blackcuack_studio/src/features/gallery/presentation/pages/projection_page.dart';
 
 class MoviePlayerPage extends StatefulWidget {
   final QuackProject project;
@@ -139,6 +140,13 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
                 ),
               ),
             ],
+          ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
+            tooltip: 'Proyectar',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ProjectionPage(projects: [widget.project]))),
           ),
         ],
       ),
