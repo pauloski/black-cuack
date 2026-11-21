@@ -8,7 +8,7 @@ Fecha de corte: **2026-11-21** (maratón). Rama de trabajo: `demo/semana-1`. Obj
 
 QA en `demo.blackquack.cl` (Mac/Chrome) encontró un **P0 de guardado** (y problemas de caché y UX). Correcciones desplegadas:
 
-- **P0 guardado (raíz):** `compressFrameJpeg` ahora **nunca lanza** (ante cualquier fallo del códec devuelve el cuadro original). Una sola causa rompía *guardar* ("No se pudo guardar"), *versiones* ("Captura algunos cuadros primero" con cuadros en pantalla) y el *borrador* (sin id de cuadro, no se persistía → no salía en "Mis proyectos"). (`prod-9`)
+- **P0 guardado (raíz confirmada por consola):** `_newFrameId` usaba `Random().nextInt(1 << 32)`. En Dart→JS los corrimientos son de 32 bits, así que **`1 << 32 == 0`** y `nextInt(0)` lanzaba `RangeError: max must be in range 0 < max ≤ 2^32, was 0` en **cada `addFrame` del navegador** (pero pasaba en la VM de los tests). Ningún cuadro recibía id → fallaban *guardar*, *versiones* ("Captura algunos cuadros primero" con cuadros en pantalla) y el *borrador* (no se persistía → no salía en "Mis proyectos"). Fix: `lib/src/core/utils/id_gen.dart` genera el id **sin corrimientos** (sorteos de 16 bits con `Random.secure` + timestamp). Además `compressFrameJpeg` ahora **nunca lanza** (blindaje). Tests en navegador (`flutter test --platform chrome`): `id_gen_test` + `save_flow_web_test` (12 en verde en Chrome, 28 en VM) para que no vuelva a pasar los tests. (`prod-9` blindaje + `prod-12` causa raíz)
 - **P0 caché:** `index.html` tenía **doble arranque** (`loadEntrypoint` + `flutter_bootstrap`) y `renderer:"html"` obsoleto → se limpió. El deploy reemplaza el **service worker por un kill-switch** (borra cachés y se da de baja) y `_headers` sirve el punto de entrada sin caché: cada carga trae el último build **sin recargar**. (`prod-9`)
 - **P1 cámara:** deshacer real (revierte la última acción, incl. recuperar un cuadro borrado); renombrar desde el título; botón **Guardar** claro (antes "Compartir"); **PROYECTAR** visible. (`prod-10`)
 - **P1 perfiles (HDU6):** entrada con **clave de imágenes** (avatar+apodo, "Toca tus 3 dibujos en orden"); insignia de número sobre el dibujo + resumen de clave al crear; **"¿Olvidaste tu clave?"** con confirmación de adulto (sin borrar proyectos); **Cambiar perfil** y **Proyectar todo** desde Inicio. (`prod-11`)
@@ -35,7 +35,9 @@ Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (s
 | HDU13 · Proyección pantalla completa | Modo proyección sin controles (proyecto o "Mis proyectos" en secuencia) | **Hecho** |
 | HDU14 · Continuidad en casa con código | — | **Falta** |
 
-**Pendiente operativo:** configurar **Cloudflare Access** antes de compartir fuera del equipo; investigar tree-shaking de íconos `_rounded` (hoy fuente completa +1,6 MB).
+**Pendiente operativo:** configurar **Cloudflare Access** antes de compartir fuera del equipo; investigar tree-shaking de íconos `_rounded` (hoy fuente completa +1,6 MB); **optimizar compresión** (hoy 1,1–1,8 s/cuadro en Mac): la webcam entrega ~1080p y el códec de `image` (dart2js) decodifica/recodifica desde resolución completa → capturar/encodear a 1280 px con el canvas nativo del navegador en vez del paquete `image`.
+
+**Rutina de despliegue (actualizada):** además de `flutter analyze` + `flutter test`, correr `flutter test --platform chrome test/id_gen_test.dart test/save_flow_web_test.dart test/frame_codec_test.dart` — atrapa fallos que solo ocurren en JS (p. ej. corrimientos de 32 bits).
 
 ## Checklist para re-probar en Mac y Android — 10 pasos
 
