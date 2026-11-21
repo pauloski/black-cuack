@@ -14,9 +14,30 @@ QA en `demo.blackquack.cl` (Mac/Chrome) encontró un **P0 de guardado** (y probl
 - **P1 perfiles (HDU6):** entrada con **clave de imágenes** (avatar+apodo, "Toca tus 3 dibujos en orden"); insignia de número sobre el dibujo + resumen de clave al crear; **"¿Olvidaste tu clave?"** con confirmación de adulto (sin borrar proyectos); **Cambiar perfil** y **Proyectar todo** desde Inicio. (`prod-11`)
 - **Verificación visual:** la extensión de Chrome **no estaba conectada** en esta sesión, así que no se recorrieron los ciclos en el navegador; el paso a paso para re-probar está abajo. Correcciones validadas por `flutter analyze` (sin errores), `flutter test` (24 en verde) y `flutter build web`, más `curl` a producción (200, `no-cache`, `noindex`, kill-switch activo).
 
+## Ronda móvil (2026-11-21, tags `prod-20261121-13..15`, `demo-estable-2`)
+
+QA en Samsung (Chrome y Samsung Internet). Las correcciones de web se confirmaron en el teléfono (lo anterior era caché). Ajustes propios del móvil:
+
+- **P0-A cámara trasera** (`prod-13`): la app abre **siempre la trasera** (`pickBackCamera`, `lensDirection.back`; con varias, la principal). Sin trasera (webcam del Mac), usa la disponible sin error. Sin botón de cambio. Test VM de la selección.
+- **P0-B orientación** (`prod-14`): al entrar al editor (solo web/teléfono) **pantalla completa + bloqueo de orientación** del proyecto (9:16→vertical, 16:9→horizontal); al salir se liberan. Si el navegador no bloquea o el usuario gira, aparece **"Gira tu teléfono…"** y se **bloquea la captura** (no se guardan cuadros torcidos); al volver, el layout se recompone. En pantallas grandes no se fuerza nada. APIs web aisladas por *conditional import* (no-op en nativo/VM).
+- **P1 layout** (`prod-15`): barra superior responsiva (secundarios en menú **⋯**, título con "…"); **opacidad** del papel cebolla movida a Ajustes (deslizador horizontal) en vez del vertical diminuto; hojas (Ajustes/Exportar/Versiones) con **scroll** para no cortarse en horizontal.
+- **Caché (Samsung Internet):** kill-switch del service worker + `_headers` sin caché, verificado en producción (`no-cache`, `noindex`, SW kill-switch, un solo bootstrap).
+- **Verificación:** `analyze` sin errores, **31 pruebas VM** y **12 en Chrome** (`--platform chrome`), build OK. La extensión de Chrome no está conectada, así que no recorrí viewports de teléfono en DevTools; checklist de teléfono abajo.
+
+### Checklist corta en Android (teléfono) — 8 pasos
+Abrir **https://demo.blackquack.cl** en Chrome/Samsung Internet (sin recargar; la caché se limpia sola):
+1. Entrar y crear/elegir perfil con su clave.
+2. Nuevo proyecto **Vertical**: el teléfono queda en vertical; girar a horizontal → aparece "Gira tu teléfono a vertical" y no deja capturar; volver a vertical → sigue.
+3. Repetir con proyecto **Horizontal** (pide horizontal).
+4. Confirmar que la cámara es la **trasera** (apunta a la mesa, sin espejo).
+5. Capturar 5 cuadros: obturador instantáneo, papel cebolla correcto.
+6. Barra superior: el título "Mi Animación" se ve sin superponerse; los secundarios están en **⋯**; Deshacer y **Guardar** visibles.
+7. Abrir **Ajustes**, **Exportar** y **Versiones**: las hojas caben/scrollean; mover la **opacidad** en Ajustes.
+8. **Guardar** → Mis proyectos con miniatura; exportar **GIF** y **ZIP**; **Proyectar**.
+
 ## Estado final del MVP (maratón 2026-11-21)
 
-Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (sin Firebase en la ruta crítica), con tags de reversión `prod-20261121-1..11`. **24 pruebas** en verde (repo, codec, modelos, versiones, borrador, ciclos con/sin perfil). `noindex` activo. Prioridad de métricas: **Android** (abrir en Chrome; medir compresión con `?debug=1`).
+Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (sin Firebase en la ruta crítica), con tags de reversión `prod-20261121-1..15` (hito estable: `demo-estable-2`). **31 pruebas VM + 12 en Chrome** (`--platform chrome`). `noindex` activo. Prioridad de métricas: **Android** (abrir en Chrome; medir compresión con `?debug=1`).
 
 | HDU | Función | Estado |
 |---|---|---|
