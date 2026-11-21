@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart'; // AuthService + AuthException
+import 'package:blackcuack_studio/src/features/auth/data/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,29 +16,29 @@ class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   bool _isLoginMode = true;
+  bool _showEmail = false; // formulario de correo oculto por defecto
 
-  // ✅ BOTÓN DE INVITADO INDESTRUCTIBLE (EL SALTO DE VALLA)
-  Future<void> _handleGuestLogin() async {
-    setState(() => _isLoading = true);
+  // ── Entrada principal: sin email (local-first) ────────────────────────────
+  void _enterAsGuest() {
+    // El intento anónimo corre en segundo plano con timeout; la entrada NO lo
+    // espera (así funciona sin conexión y no se cuelga).
+    unawaited(_tryAnonymous());
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
+  Future<void> _tryAnonymous() async {
     try {
-      // 1. Intentamos el login oficial de Firebase
-      await _authService.signInAnonymously();
-
-      // 2. Saltamos a la Home pase lo que pase
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      await _authService
+          .signInAnonymously()
+          .timeout(const Duration(seconds: 4));
+    } on TimeoutException {
+      debugPrint('Inicio anónimo: timeout (seguimos sin conexión).');
     } catch (e) {
-      // 3. Si hay error de red o Firebase, forzamos la entrada igual
-      debugPrint("Bypass activado por error: $e");
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint('Inicio anónimo falló: $e');
     }
   }
 
+  // ── Entrada con correo (docentes) ─────────────────────────────────────────
   void _handleAuth() async {
     setState(() => _isLoading = true);
     final email = _emailController.text.trim();
@@ -53,12 +54,11 @@ class _LoginPageState extends State<LoginPage> {
       await (_isLoginMode
           ? _authService.signIn(email, password)
           : _authService.signUp(email, password));
-
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } on AuthException catch (e) {
       _showSnackBar(e.message, isError: true);
     } catch (e) {
-      _showSnackBar("Error inesperado. Prueba como Invitado.", isError: true);
+      _showSnackBar("Error inesperado. Entra como invitado.", isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,9 +82,8 @@ class _LoginPageState extends State<LoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontFamily: 'Lexend')),
-        backgroundColor: isError
-            ? const Color(0xFFFF4D4D)
-            : const Color(0xFFBC87FE),
+        backgroundColor:
+            isError ? const Color(0xFFFF4D4D) : const Color(0xFFBC87FE),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -102,97 +101,52 @@ class _LoginPageState extends State<LoginPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/images/logo-login.svg',
-                height: 154,
-              ),
-              const SizedBox(height: 40),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset('assets/images/logo-login.svg',
+                        height: 154),
+                    const SizedBox(height: 44),
 
-              _buildTextField(_emailController, 'Email', Icons.email_outlined),
-              const SizedBox(height: 20),
-              _buildTextField(
-                _passwordController,
-                'Password',
-                Icons.lock_outline,
-                isObscure: true,
-              ),
-
-              if (_isLoginMode)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _handleForgotPassword,
-                    child: const Text(
-                      "¿Olvidaste tu contraseña?",
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        fontFamily: 'Lexend',
+                    // ── Botón principal: entrar sin email ──────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _enterAsGuest,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFB800),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: const Text(
+                          'ENTRAR AL TALLER',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Lexend',
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                    const SizedBox(height: 14),
 
-              const SizedBox(height: 15),
-
-              if (_isLoading)
-                const CircularProgressIndicator(color: Color(0xFFBC87FE))
-              else ...[
-                // BOTÓN PRINCIPAL
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _handleAuth,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isLoginMode
-                          ? const Color(0xFFFFB800)
-                          : const Color(0xFFBC87FE),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                    // ── Enlace discreto para docentes ──────────────────────
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _showEmail = !_showEmail),
+                      child: Text(
+                        _showEmail
+                            ? 'Ocultar'
+                            : 'Soy docente · entrar con correo',
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 12),
                       ),
                     ),
-                    child: Text(
-                      _isLoginMode ? 'ENTRAR AL TALLER' : 'REGISTRARME',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Lexend',
-                      ),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 15),
-
-                // ✅ BOTÓN DE SALVACIÓN
-                TextButton(
-                  onPressed: _handleGuestLogin,
-                  child: const Text(
-                    "ENTRAR COMO ARTISTA INVITADO",
-                    style: TextStyle(
-                      color: Color(0xFFBC87FE),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-
-                const Divider(color: Colors.white10, height: 40),
-
-                TextButton(
-                  onPressed: () => setState(() => _isLoginMode = !_isLoginMode),
-                  child: Text(
-                    _isLoginMode
-                        ? '¿No tienes cuenta? REGÍSTRATE'
-                        : 'YA TENGO CUENTA',
-                    style: const TextStyle(color: Colors.white24, fontSize: 12),
-                  ),
-                ),
-              ],
-            ],
+                    if (_showEmail) ..._buildEmailForm(),
+                  ],
                 ),
               ),
             ),
@@ -200,6 +154,59 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildEmailForm() {
+    return [
+      const SizedBox(height: 6),
+      _buildTextField(_emailController, 'Email', Icons.email_outlined),
+      const SizedBox(height: 16),
+      _buildTextField(_passwordController, 'Password', Icons.lock_outline,
+          isObscure: true),
+      if (_isLoginMode)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _handleForgotPassword,
+            child: const Text("¿Olvidaste tu contraseña?",
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    fontFamily: 'Lexend')),
+          ),
+        ),
+      const SizedBox(height: 8),
+      if (_isLoading)
+        const CircularProgressIndicator(color: Color(0xFFBC87FE))
+      else ...[
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _handleAuth,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBC87FE),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+            ),
+            child: Text(
+              _isLoginMode ? 'ENTRAR CON CORREO' : 'REGISTRARME',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Lexend'),
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => setState(() => _isLoginMode = !_isLoginMode),
+          child: Text(
+            _isLoginMode ? '¿No tienes cuenta? REGÍSTRATE' : 'YA TENGO CUENTA',
+            style: const TextStyle(color: Colors.white24, fontSize: 12),
+          ),
+        ),
+      ],
+    ];
   }
 
   Widget _buildTextField(
@@ -215,11 +222,8 @@ class _LoginPageState extends State<LoginPage> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-        prefixIcon: Icon(
-          icon,
-          color: const Color(0xFFBC87FE).withOpacity(0.7),
-          size: 20,
-        ),
+        prefixIcon: Icon(icon,
+            color: const Color(0xFFBC87FE).withValues(alpha: 0.7), size: 20),
         filled: true,
         fillColor: const Color(0xFF1A1A1A),
         enabledBorder: OutlineInputBorder(

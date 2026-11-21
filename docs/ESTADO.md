@@ -81,6 +81,13 @@ Despliegue continuo y bajo demanda desde T0; cada publicación se aprueba.
 - **Prioridad de validación/métricas: Android** (MVP a Google Play), no iPad/Safari.
 - Pruebas: 15 en verde (frame_codec, repo Hive+LazyBox, save-flow, borrador, prune 24h, in-memory).
 
+## Offline — qué cubre (web vs Android)
+
+- **Datos (IndexedDB vía Hive):** crear, guardar, listar, reabrir, reproducir y exportar GIF funcionan **sin red** una vez cargada la app, y **persisten** entre recargas.
+- **Cargar la app sin red (web):** depende del **service worker** de Flutter (`flutter_service_worker.js`): tras la primera carga con red, una recarga posterior puede funcionar offline desde su caché; una primera carga sin red no. En **Android nativo (APK/Play)** la app es offline total.
+- **Safari/iPad (WebKit/ITP):** puede **borrar IndexedDB tras ~7 días** sin visitas al sitio (política de almacenamiento de WebKit). Mitigación: al iniciar se pide `navigator.storage.persist()` (best-effort; Safari puede no concederlo). **Sin garantía de persistencia en Safari sin visitas periódicas.** Por eso el MVP prioriza Android.
+- **Respaldo en memoria:** si el navegador bloquea IndexedDB, la app corre pero **no persiste**; se muestra un **banner rojo** permanente y el guardado avisa que se perderá al cerrar.
+
 ## Auditoría HDU1–5 vs `docs/HISTORIAS_DE_USUARIO.md` (2026-11-21)
 
 Leyenda: ✅ hecho · ⚠️ parcial · ❌ falta · 🤖 solo cumplible en **nativo Android**.
