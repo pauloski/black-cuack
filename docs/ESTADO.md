@@ -1,6 +1,45 @@
 # ESTADO — BlackQuack Studio
 
-Fecha de corte: **2026-11-20**. Rama de trabajo: `demo/semana-1`. Objetivo de la semana (CLAUDE.md §8): **demo estable y presentable** del núcleo de creación, local-first, sin exponer datos.
+Fecha de corte: **2026-11-21** (maratón). Rama de trabajo: `demo/semana-1`. Objetivo (CLAUDE.md §8): **demo del MVP** en `demo.blackquack.cl`, local-first, sin exponer datos.
+
+---
+
+## Estado final del MVP (maratón 2026-11-21)
+
+Todo lo de abajo está **en producción** (`demo.blackquack.cl`), local-first (sin Firebase en la ruta crítica), con tags de reversión `prod-20261121-1..8`. 18 pruebas en verde (repo, codec, modelos, versiones, borrador). `noindex` activo. Prioridad de métricas: **Android** (abrir en Chrome; medir compresión con `?debug=1`).
+
+| HDU | Función | Estado |
+|---|---|---|
+| HDU1 · Papel cebolla + guardado al instante | Cebolla 1–3 capas + opacidad; compresión al capturar → guardado inmediato; borrador auto-persistido (reabre tras cierre; "atrás" pregunta guardar/descartar) | **Hecho** (🤖 fijar exposición/enfoque/balance = nativo Android, falta) |
+| HDU2 · Orientación 9:16 / 16:9 | Elección al crear; recorte fijo en captura, guía de encuadre, GIF/reproductor | **Hecho** |
+| HDU3 · Línea de tiempo y FPS | Reordenar (arrastrar), duplicar, borrar con deshacer; FPS 1–30 + atajos 6/8/12/15/24; bucle desde cualquier cuadro | **Hecho** |
+| HDU4 · Export GIF/ZIP (/MP4) | GIF y ZIP en web/Android, sin EXIF/ubicación, marca de agua "BlackQuack" | **Parcial** (🤖 MP4 nativo pendiente; sin niveles 720/1080) |
+| HDU5 · Versiones por autor | Guardar versión (fecha/autor/nº cuadros), historial restaurar/duplicar, cuadros compartidos | **Hecho** (ejercicios de práctica, falta) |
+| HDU6 · Perfiles sin correo (local) | Apodo, avatar, clave de 3 dibujos; elegir al entrar; cada perfil ve solo sus proyectos | **Hecho** (demo local; reset de clave por docente, falta) |
+| HDU7 · Sala por QR / código | Código de 5 caracteres (base de `wip`); sin QR ni lista de apodos/OA | **Parcial** |
+| HDU8 · Kiosco / fijar pantalla | — | **Falta** (🤖 nativo Android) |
+| HDU9 · Grupos con roles | Galería de grupo (nube, gateada por `hasCloudAccount`); sin roles/autoría por versión | **Parcial** (fuera de alcance esta semana) |
+| HDU10 · Sincronización asíncrona | Local-first listo; cola a Cloudflare no construida | **Parcial** |
+| HDU11 · Dashboard docente | — | **Falta** |
+| HDU12 · Reporte UTP | — | **Falta** |
+| HDU13 · Proyección pantalla completa | Modo proyección sin controles (proyecto o "Mis proyectos" en secuencia) | **Hecho** |
+| HDU14 · Continuidad en casa con código | — | **Falta** |
+
+**Pendiente operativo:** configurar **Cloudflare Access** antes de compartir fuera del equipo; investigar tree-shaking de íconos `_rounded` (hoy fuente completa +1,6 MB).
+
+## Checklist de validación en Android (producción) — 10 pasos
+
+Abrir **https://demo.blackquack.cl** en Chrome de Android (`?debug=1` para ver ms/cuadro):
+1. "ENTRAR AL TALLER" → **crear un perfil** (apodo, avatar, 3 dibujos) → entrar. *(correo tras "Soy docente")*
+2. "Nuevo proyecto" → elegir **Vertical u Horizontal** → la guía de encuadre respeta la orientación.
+3. Capturar **5 cuadros rápido**: el obturador responde al instante; se ve el papel cebolla.
+4. En la línea de tiempo: **arrastrar** para reordenar, **duplicar** y **borrar con DESHACER**.
+5. Ajustes: fijar FPS con un **atajo (12/15/24)**; reproducir → **bucle** desde el cuadro elegido.
+6. **Guardar versión** (📑) y abrir **Historial** (🕘) → **restaurar/duplicar**.
+7. **Guardar** (título+artista) → vuelve a Inicio → en "Mis proyectos" aparece **con miniatura**; **recargar** → persiste.
+8. Exportar **GIF** y **ZIP** → se abren con todos los cuadros, con marca de agua "BlackQuack".
+9. "Mis proyectos" → **Proyectar** (▶ pantalla completa, sin controles); tocar para salir.
+10. **Modo avión tras cargar** → crear/guardar/listar/exportar siguen; cerrar sesión y entrar con **otro perfil** → ve solo sus proyectos.
 
 ---
 
