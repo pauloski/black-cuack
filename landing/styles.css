@@ -279,3 +279,9 @@ table.cmp { border-collapse: collapse; width: 100%; min-width: 620px; font-size:
 @media (max-width: 760px) {
   .problem-grid { grid-template-columns: 1fr; gap: 24px; }
 }
+
+/* ---------- Validación: listas dentro de tiles ---------- */
+.tile ul { margin: 10px 0 0; padding-left: 18px; font-size: .92rem; }
+.tile li { margin-bottom: 5px; }
+.tile.ink li, .tile.ink ul { color: rgba(255,255,255,.82); }
+.tile .lead-tile { font-weight: 600; color: var(--ink); }
