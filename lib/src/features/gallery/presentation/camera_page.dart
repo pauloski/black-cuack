@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:blackcuack_studio/main.dart' show navigatorKey;
+import 'package:blackcuack_studio/src/core/config/app_info.dart';
 import 'package:blackcuack_studio/src/core/config/debug_flags.dart';
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
@@ -1104,7 +1105,7 @@ class _CameraPageState extends State<CameraPage> {
                 child: ValueListenableBuilder<String>(
                   valueListenable: compressionDebug,
                   builder: (_, v, _) => Text(
-                    '⏱️ $v',
+                    'v$appVersion · ⏱️ $v',
                     style: const TextStyle(
                         color: Color(0xFF3CCF7A),
                         fontFamily: 'Lexend',

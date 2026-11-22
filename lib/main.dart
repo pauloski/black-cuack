@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import 'package:blackcuack_studio/src/core/config/app_info.dart';
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 
@@ -27,6 +28,7 @@ void main() async {
   await initRepositories();
   await requestPersistentStorage();
   await ProfileService.loadActive();
+  await loadAppVersion();
 
   // Firebase es opcional para la demo (local-first): si no enciende, la app
   // sigue funcionando sin conexión.

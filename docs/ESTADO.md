@@ -2,6 +2,13 @@
 
 Fecha de corte: **2026-11-21** (maratón). Rama de trabajo: `demo/semana-1`. Objetivo (CLAUDE.md §8): **demo del MVP** en `demo.blackquack.cl`, local-first, sin exponer datos.
 
+## Versionado (regla, desde v0.1.0)
+
+- **Arreglos → 0.1.x · Funciones nuevas → 0.2.0** (semántico). La versión vive en una sola fuente: `pubspec.yaml` (`version:`); la app la muestra vía `package_info_plus` (`lib/src/core/config/app_info.dart`) en Ajustes y en el overlay `?debug=1`.
+- **Cada versión que llega a producción:** sube `pubspec.yaml`, lleva **tag git anotado** (`vX.Y.Z`), una **entrada en `CHANGELOG.md`** y la versión visible en la app.
+- La **landing** muestra la misma versión desde `/landing/version.json`, que su script de despliegue genera desde `pubspec.yaml` (nunca a mano).
+- `v0.1.0` = prototipo para Start-Up Chile BUILD (equivale a `demo-estable-2` + versión visible).
+
 ---
 
 ## Ronda de QA en producción (2026-11-21, tags `prod-20261121-9..11`)

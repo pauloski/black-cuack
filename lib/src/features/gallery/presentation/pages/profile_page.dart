@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:blackcuack_studio/src/core/config/app_info.dart';
 import 'package:blackcuack_studio/src/features/auth/data/project_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -190,9 +191,9 @@ class ProfilePage extends StatelessWidget {
               onPressed: _handleDeleteAccount,
             ),
             const SizedBox(height: 10),
-            const Text(
-              "v0.9.2 (Beta Taller)",
-              style: TextStyle(color: Colors.white10, fontSize: 10),
+            Text(
+              appVersionLabel,
+              style: const TextStyle(color: Colors.white24, fontSize: 10),
             ),
           ],
         ),
@@ -211,7 +212,7 @@ class ProfilePage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       child: ListTile(
         onTap: onTap,
-        tileColor: Colors.white.withOpacity(0.03),
+        tileColor: Colors.white.withValues(alpha: 0.03),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         leading: Icon(icon, color: color),
         title: Text(
