@@ -266,3 +266,16 @@ table.cmp { border-collapse: collapse; width: 100%; min-width: 620px; font-size:
   .stack-card { position: static; }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* ---------- Sección Problema (texto + imagen + cita) ---------- */
+.problem-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 44px; align-items: center; margin-top: 26px; }
+.problem-text .lead { margin-bottom: 18px; }
+.problem-media { margin: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.problem-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pullquote { margin: 44px 0 0; background: var(--navy); color: #fff; border-radius: 26px; padding: clamp(30px, 4.5vw, 52px); box-shadow: var(--shadow); }
+.pullquote p { font-size: clamp(1.25rem, 2.8vw, 1.8rem); font-weight: 600; line-height: 1.38; color: #fff; margin: 0 0 18px; letter-spacing: -.01em; max-width: 42ch; }
+.pullquote cite { font-style: normal; color: rgba(255,255,255,.72); font-size: .92rem; }
+.pullquote cite span { color: rgba(255,255,255,.52); }
+@media (max-width: 760px) {
+  .problem-grid { grid-template-columns: 1fr; gap: 24px; }
+}
