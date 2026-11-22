@@ -316,3 +316,9 @@ table.cmp { border-collapse: collapse; width: 100%; min-width: 560px; font-size:
 @media (max-width: 880px) {
   .feat-list { columns: 1; }
 }
+
+/* Imágenes reales: galería uniforme y logo del cierre */
+.gallery .photo { aspect-ratio: 4/3; margin: 0; }
+.gallery .photo img { width: 100%; height: 100%; object-fit: cover; }
+.cta-logo { width: 120px; height: auto; margin: 0 auto 22px; display: block; }
+.member img { object-position: center top; }

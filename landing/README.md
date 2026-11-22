@@ -25,14 +25,14 @@ Reemplaza `data-video-id="VIDEO_ID"` en `index.html` por el ID real de YouTube (
 ## Imágenes: qué va en cada slot (placeholders en `/landing/assets/`)
 Son placeholders estáticos. Reemplaza el archivo con el mismo nombre (o cambia la ruta en `index.html`). Ya subiste algunos reales (`kb.png`, `banner-taller.jpg`, `g-taller-002.jpg`, `brand-*.png`, `h-brand-001.jpg`): dime cuál va en cada slot y los conecto.
 
+Ya conectadas (imágenes reales):
+- Portada → `g-taller-002.jpg` · Tecnología → `banner-taller.jpg` · Galería Animakids → `brand-002.png`, `h-brand-001.jpg`, `brand-005.png` · Karen → `kb.png` · Cierre (CTA) y favicon → `logo-nav-light.svg` / `logo-light.svg` (stacked).
+
+Aún placeholder (reemplazar):
 | Slot (archivo actual) | Uso | Tamaño sugerido |
 |---|---|---|
-| `logo-nav-light.svg` | Logo en portada y pie (ya es el tuyo) | vectorial |
-| `hero-principal.svg` | Foto principal de portada (niños animando) | ~1040×860 |
 | `video-preview.svg` | Miniatura del video demo | 1280×720 |
-| `captura-prototipo.svg` | Captura real del prototipo (sección Tecnología) | 1200×800 |
-| `animakids-1/2/3.svg` | 3 fotos del taller (sección Animakids) | 800×600 |
-| `team-karen.svg`, `team-paulo.svg` | Fotos del equipo (circulares) | 400×400 |
+| `team-paulo.svg` | Foto de Paulo (circular) | 400×400 (o retrato tipo `kb.png`) |
 | `logo-yerpun.svg` | Logo Colegio Montessori Yerpún | 300×150 (fondo transparente) |
 | `logo-uv-diseno.svg` | Logo Escuela de Diseño UV | 300×150 (fondo transparente) |
 | `og-cover.png` | Imagen al compartir el enlace (Open Graph) | **1200×630 PNG/JPG** |
