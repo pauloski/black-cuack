@@ -10,350 +10,347 @@
   <!-- noindex: QUITAR estas 2 líneas (o cambiar a 'index, follow') cuando la landing sea pública. -->
   <meta name="robots" content="noindex, nofollow">
 
-  <!-- Open Graph / redes -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="BlackQuack Studio · Stop motion en el aula">
-  <meta property="og:description" content="Crear requiere tiempo. La tecnología debe hacerlo posible. Prototipo en demo.blackquack.cl.">
+  <meta property="og:description" content="Crear requiere tiempo. La tecnología debe hacerlo posible.">
   <meta property="og:image" content="https://build.blackquack.cl/assets/og-cover.png">
   <meta property="og:url" content="https://build.blackquack.cl/">
   <meta name="twitter:card" content="summary_large_image">
 
   <link rel="icon" href="assets/logo-nav-light.svg" type="image/svg+xml">
 
-  <!-- Tipografía: Bricolage Grotesque (títulos) + Inter (texto), con respaldo del sistema -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 
+  <link rel="preload" as="image" href="assets/hero.jpg" fetchpriority="high">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
 
+  <!-- ============ HEADER ============ -->
+  <header class="site-header" id="site-header">
+    <div class="wrap-wide nav">
+      <a href="#inicio" aria-label="BlackQuack Studio · inicio"><img src="assets/logo-nav-light.svg" alt="BlackQuack Studio"></a>
+      <a class="btn btn-primary nav-cta" href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo →</a>
+    </div>
+  </header>
+
   <main id="contenido">
 
-    <!-- ============ PORTADA ============ -->
-    <section class="cuadro hero wrap" aria-labelledby="h-portada">
-      <div class="hero-grid">
-        <div>
-          <img class="hero-logo" src="assets/logo-nav-light.svg" alt="BlackQuack Studio">
-          <span class="cuadro-num">BlackQuack Studio · Start-Up Chile BUILD 2026</span>
-          <h1 id="h-portada">Crear requiere tiempo. <span class="yel">La tecnología debe hacerlo posible.</span></h1>
-          <p class="lead">Convertimos las tablets y celulares del colegio en <strong>estaciones de animación cuadro a cuadro</strong> seguras, sin internet y pensadas para un curso completo: niños y niñas que crean con las manos, y docentes que ven el proceso de cada uno.</p>
-          <div class="hero-cta">
-            <a class="btn btn-primary" href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo →</a>
-            <a class="btn btn-ghost" href="#video">Ver video</a>
-          </div>
-          <p class="hero-note">Funciona mejor en un teléfono o tablet Android con Chrome. Prototipo <span data-version>v0.1.0</span>.</p>
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="inicio">
+      <div class="hero-bg"><img src="assets/hero.jpg" alt="" fetchpriority="high"></div>
+      <div class="hero-overlay" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <span class="kicker">Start-Up Chile BUILD 2026</span>
+        <h1>Crear requiere tiempo.<br><span class="hl">La tecnología debe hacerlo posible.</span></h1>
+        <p class="lead">Convertimos las tablets y celulares del colegio en estaciones de animación cuadro a cuadro: seguras, sin internet y pensadas para un curso completo.</p>
+        <div class="hero-cta">
+          <a class="btn btn-yellow" href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo →</a>
+          <a class="btn btn-outline-light" href="#video">Ver video</a>
         </div>
-        <figure class="hero-photo">
-          <img src="assets/g-taller-002.jpg" alt="Dos niños animando cuadro a cuadro en el taller Animakids" width="1200" height="800" fetchpriority="high" decoding="async">
-        </figure>
+        <p class="hero-note">Funciona mejor en un teléfono o tablet Android con Chrome · Prototipo <span data-version>v0.1.0</span></p>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ LA INICIATIVA ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-iniciativa">
-      <span class="cuadro-num">La iniciativa</span>
-      <h2 id="h-iniciativa">Una plataforma para crear animación en el aula</h2>
-      <p class="lead">Facilitar la enseñanza y experimentación de la animación cuadro a cuadro en contextos educativos, promoviendo el pensamiento creativo, la expresión artística y el uso significativo de la tecnología en el aula.</p>
-      <p>Para lograrlo, convierte las tablets y celulares del colegio en estaciones de trabajo seguras, donde niños y niñas de 8 a 12 años crean solos o en grupo mientras el docente acompaña el proceso de cada uno.</p>
-      <div class="pills">
-        <span class="pill"><span class="dot" style="background:var(--yellow)"></span>Sin publicidad</span>
-        <span class="pill"><span class="dot" style="background:var(--purple)"></span>Sin salidas a otras apps</span>
-        <span class="pill"><span class="dot" style="background:var(--green)"></span>Sin depender de internet</span>
+    <!-- ============ PROBLEMA ============ -->
+    <section class="section" aria-labelledby="h-problema">
+      <div class="wrap reveal">
+        <span class="kicker">01 · El problema</span>
+        <h2 id="h-problema">Una generación que recibe el resultado <mark>antes que el esfuerzo.</mark></h2>
+        <p class="lead">Redes sociales, videojuegos e IA generativa comparten una lógica: la recompensa llega primero. Es un fenómeno global, y la OCDE ya mide su costo en la sala de clases.</p>
+        <div class="stat-grid">
+          <div class="stat"><div class="big">6,6% → 11,4%</div><p>Lectores «apresurados», que responden rápido y mal, casi se duplicaron entre 2018 y 2025 (PISA 2025).</p></div>
+          <div class="stat"><div class="big">20,1%</div><p>Estudiantes chilenos con clases de ciencias sin distracción por dispositivos; en la OCDE es 39,2%.</p></div>
+          <div class="stat"><div class="big">+4,5 h</div><p>Diarias de pantalla por entretención entre los 8 y 12 años; casi nada de ese tiempo es para crear.</p></div>
+        </div>
+        <p class="after-note">En pensamiento creativo, Chile iguala a la OCDE generando ideas, pero queda bajo justo en <strong>evaluar y mejorar</strong> lo que crea. Y desde 2026 la <strong>Ley 21.801</strong> saca los celulares personales de la sala, pero las apps de creación están hechas para una persona, no para un curso de 30.</p>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ EL PROBLEMA ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-problema">
-      <span class="cuadro-num">01 · El problema</span>
-      <h2 id="h-problema">Una generación que recibe el resultado <mark>antes que el esfuerzo.</mark></h2>
-      <p class="lead">Redes sociales, videojuegos e IA generativa comparten una lógica: la recompensa llega primero. Es un fenómeno global, y la OCDE ya mide su costo en la sala de clases.</p>
-      <div class="card-grid">
-        <div class="card"><div class="big">6,6% → 11,4%</div>Lectores «apresurados», que responden rápido y mal, casi se duplicaron entre 2018 y 2025 (PISA 2025).</div>
-        <div class="card"><div class="big">20,1%</div>Estudiantes chilenos con clases de ciencias sin distracción por dispositivos; en la OCDE es 39,2%.</div>
-        <div class="card"><div class="big">+4,5 h</div>Diarias de pantalla por entretención entre los 8 y 12 años; casi nada de ese tiempo es para crear.</div>
-      </div>
-      <p style="margin-top:24px">En pensamiento creativo, Chile iguala a la OCDE generando ideas, pero queda bajo justo en <strong>evaluar y mejorar</strong> lo que crea. Y desde 2026 la <strong>Ley 21.801</strong> saca los celulares personales de la sala, pero las apps de creación están hechas para una persona, no para un curso de 30.</p>
-    </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ LA OPORTUNIDAD ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-oportunidad">
-      <span class="cuadro-num">La oportunidad · Industrias creativas</span>
-      <h2 id="h-oportunidad">Un sector en auge, sin herramientas para la infancia</h2>
-      <div class="card-grid">
-        <div class="card"><div class="big yel">2,2%</div>del PIB de Chile viene de las industrias creativas.</div>
-        <div class="card"><div class="big yel">150 mil</div>empleos genera el sector en el país.</div>
-        <div class="card"><div class="big yel">Oscar</div>«Historia de un Oso» (2016): la animación chilena compite en el mundo.</div>
-      </div>
-      <p class="lead" style="margin-top:24px">Chile forma animadores en la universidad, pero <span class="yel"><strong>no hay herramientas que impulsen la creatividad desde la infancia, dentro del colegio.</strong></span></p>
-    </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ LA SOLUCIÓN ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-solucion">
-      <span class="cuadro-num">02 · La solución</span>
-      <h2 id="h-solucion">Un taller de animación que <mark>funciona en el aula.</mark></h2>
-      <div class="card-grid">
-        <div class="card"><h3>1. Abre la sala</h3>El docente proyecta un QR y las tablets se unen en segundos.</div>
-        <div class="card"><h3>2. Fija los equipos</h3>Modo kiosco: sin salir a otras apps y sin publicidad.</div>
-        <div class="card"><h3>3. Crean en grupo</h3>Solos o en equipo, con roles y sin internet.</div>
-        <div class="card"><h3>4. Se ve el proceso</h3>Docente y UTP ven el avance de cada estudiante.</div>
-      </div>
-      <h3 style="margin-top:36px">Funcionalidades, en simple</h3>
-      <ul class="feat-list">
-        <li><strong>Captura cuadro a cuadro</strong> con «papel cebolla» y una línea de tiempo fácil de ordenar.</li>
-        <li><strong>Perfiles sin correo:</strong> apodo, avatar y clave de imágenes. Un niño de 8 años entra solo.</li>
-        <li><strong>Proyectos de grupo con roles</strong> que rotan, y registro de quién hizo cada cuadro.</li>
-        <li><strong>Funciona sin internet:</strong> todo ocurre en el dispositivo.</li>
-        <li><strong>Versiones:</strong> cada intento se guarda para comparar, corregir y mejorar.</li>
-        <li><strong>Código escolar:</strong> el niño sigue animando fuera de la clase y cada avance se registra.</li>
-        <li><strong>Panel docente y reporte UTP</strong> ligado a los objetivos de aprendizaje chilenos.</li>
-        <li><strong>Modo proyección y exportación</strong> en video.</li>
-      </ul>
-      <div class="highlight">
-        <span class="cuadro-num">Nuevo · Código escolar</span>
-        <p class="lead" style="margin:0"><strong>Con su código escolar, el niño sigue animando fuera de la clase y cada avance queda registrado como actividad de su proyecto escolar.</strong> El docente lo ve en su panel.</p>
-      </div>
-      <div class="card-grid">
-        <div class="card feature-yellow"><span class="chip">Fase 1 · BUILD</span><h3 style="margin-top:12px">3.° a 6.° básico · 8 a 12 años</h3>Flujo guiado y lúdico, donde la metodología ya está probada.</div>
-        <div class="card"><span class="chip">Fase 2 · Crecimiento</span><h3 style="margin-top:12px">7.° básico a 4.° medio · 12 a 17 años</h3>Flujo propio para jóvenes sobre la misma base de aula.</div>
+    <!-- ============ OPORTUNIDAD ============ -->
+    <section class="section section-tint" aria-labelledby="h-op">
+      <div class="wrap reveal">
+        <span class="kicker">La oportunidad · Industrias creativas</span>
+        <h2 id="h-op">Un sector en auge, sin herramientas para la infancia</h2>
+        <div class="stat-grid">
+          <div class="stat"><div class="big">2,2%</div><p>del PIB de Chile viene de las industrias creativas.</p></div>
+          <div class="stat"><div class="big">150 mil</div><p>empleos genera el sector en el país.</p></div>
+          <div class="stat"><div class="big">Oscar</div><p>«Historia de un Oso» (2016): la animación chilena compite en el mundo.</p></div>
+        </div>
+        <p class="lead after-note">Chile forma animadores en la universidad, pero <strong>no hay herramientas que impulsen la creatividad desde la infancia, dentro del colegio.</strong></p>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
+    <!-- ============ INICIATIVA ============ -->
+    <section class="section" aria-labelledby="h-ini">
+      <div class="wrap reveal">
+        <span class="kicker">La iniciativa</span>
+        <h2 id="h-ini">Una plataforma para crear animación en el aula</h2>
+        <p class="lead">Facilitar la enseñanza y experimentación de la animación cuadro a cuadro en contextos educativos, promoviendo el pensamiento creativo, la expresión artística y el uso significativo de la tecnología. Niños y niñas de 8 a 12 años crean solos o en grupo mientras el docente acompaña el proceso de cada uno.</p>
+        <div class="principles">
+          <div class="principle p1"><div class="d"></div><h3>Sin publicidad</h3><p>Un entorno limpio, sin distracciones ni compras.</p></div>
+          <div class="principle p2"><div class="d"></div><h3>Sin salidas a otras apps</h3><p>Modo seguro: el foco se queda en crear.</p></div>
+          <div class="principle p3"><div class="d"></div><h3>Sin depender de internet</h3><p>Todo ocurre en el dispositivo, también sin señal.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SOLUCIÓN (proceso numerado, oscuro) ============ -->
+    <section class="section section-dark" aria-labelledby="h-sol">
+      <div class="wrap reveal">
+        <span class="kicker">02 · La solución</span>
+        <h2 id="h-sol">Un taller de animación que funciona en el aula</h2>
+        <div class="steps-num">
+          <div class="step-num"><div class="n">01</div><h3>Abre la sala</h3><p>El docente proyecta un QR y las tablets se unen en segundos.</p></div>
+          <div class="step-num"><div class="n">02</div><h3>Fija los equipos</h3><p>Modo kiosco: sin salir a otras apps y sin publicidad.</p></div>
+          <div class="step-num"><div class="n">03</div><h3>Crean en grupo</h3><p>Solos o en equipo, con roles y sin internet.</p></div>
+          <div class="step-num"><div class="n">04</div><h3>Se ve el proceso</h3><p>Docente y UTP ven el avance de cada estudiante.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TECNOLOGÍA (scroll-stacking) ============ -->
+    <section class="section section-tint" aria-labelledby="h-tec">
+      <div class="wrap">
+        <div class="reveal">
+          <span class="kicker">03 · Tecnología e innovación</span>
+          <h2 id="h-tec">Una capa de aula que no existe en el mercado</h2>
+          <p class="lead">La cámara y el editor existen en muchas apps. Nosotros construimos lo que falta para que funcionen con 30 niños, en cinco componentes propios.</p>
+        </div>
+        <div class="stack">
+          <article class="stack-card c1" style="--i:0"><div class="n">01 / INNOVACIÓN</div><h3>Sincronización local-first</h3><p>Trabajo en clase y en casa con conexión intermitente, sin perder un cuadro.</p></article>
+          <article class="stack-card c2" style="--i:1"><div class="n">02 / INNOVACIÓN</div><h3>Identidad sin correo</h3><p>Segura para menores y alineada con la Ley 21.719: apodo, avatar y clave de imágenes.</p></article>
+          <article class="stack-card c3" style="--i:2"><div class="n">03 / INNOVACIÓN</div><h3>Kiosco ligero</h3><p>Fija las tablets desde el celular del docente, sin soporte técnico.</p></article>
+          <article class="stack-card c4" style="--i:3"><div class="n">04 / INNOVACIÓN</div><h3>Grafo del proceso creativo</h3><p>Autoría de cada cuadro, versión y rol, convertida en trazabilidad.</p></article>
+          <article class="stack-card c5" style="--i:4"><div class="n">05 / INNOVACIÓN</div><h3>Indicadores del proceso</h3><p>Iteraciones y correcciones convertidas en datos para el docente y la UTP.</p></article>
+        </div>
+        <p class="lead after-note"><strong>No automatizamos la creatividad con IA.</strong> Quitamos las barreras técnicas sin quitarle al niño la experiencia de crear.</p>
+      </div>
+    </section>
+
+    <!-- ============ FUNCIONALIDADES (bento) ============ -->
+    <section class="section" aria-labelledby="h-feat">
+      <div class="wrap-wide reveal">
+        <div class="wrap" style="padding:0">
+          <span class="kicker">Qué incluye</span>
+          <h2 id="h-feat">Funcionalidades, en simple</h2>
+        </div>
+        <div class="bento">
+          <div class="tile big cream"><div class="ic">🎬</div><h3>Captura cuadro a cuadro</h3><p>Con «papel cebolla» y una línea de tiempo fácil de ordenar. Cada cuadro se guarda al instante, también sin internet.</p></div>
+          <div class="tile lav"><div class="ic">🙂</div><h3>Perfiles sin correo</h3><p>Apodo, avatar y clave de imágenes. Un niño de 8 años entra solo.</p></div>
+          <div class="tile"><div class="ic">👥</div><h3>Grupos con roles</h3><p>Roles que rotan y registro de quién hizo cada cuadro.</p></div>
+          <div class="tile mint"><div class="ic">🕓</div><h3>Versiones</h3><p>Cada intento se guarda para comparar, corregir y mejorar.</p></div>
+          <div class="tile ink wide"><div class="ic">🏫</div><h3>Código escolar</h3><p>Con su código, el niño sigue animando fuera de la clase y cada avance queda registrado como actividad de su proyecto escolar. El docente lo ve en su panel.</p></div>
+          <div class="tile"><div class="ic">📊</div><h3>Panel docente y reporte UTP</h3><p>Ligado a los objetivos de aprendizaje chilenos.</p></div>
+          <div class="tile"><div class="ic">📽️</div><h3>Proyección y exportación</h3><p>Modo proyección y exportación en video.</p></div>
+        </div>
+        <div class="wrap" style="padding:0; margin-top:28px; display:flex; gap:12px; flex-wrap:wrap">
+          <span class="chip">Fase 1 · BUILD — 3.° a 6.° básico (8 a 12 años)</span>
+          <span class="chip">Fase 2 · Crecimiento — 7.° básico a 4.° medio</span>
+        </div>
+      </div>
+    </section>
 
     <!-- ============ VIDEO DEMO ============ -->
-    <section class="cuadro wrap" id="video" aria-labelledby="h-video">
-      <span class="cuadro-num">Video demo</span>
-      <h2 id="h-video">Míralo en movimiento</h2>
-      <div class="video-frame" id="video-player" data-video-id="VIDEO_ID">
-        <img src="assets/video-preview.svg" alt="Vista previa del video del prototipo" width="1280" height="720" loading="lazy">
-        <button class="video-play" type="button" aria-label="Reproducir video"><span>▶</span></button>
+    <section class="section section-tint" id="video" aria-labelledby="h-video">
+      <div class="wrap reveal" style="text-align:center">
+        <span class="kicker">Video demo</span>
+        <h2 id="h-video" style="margin-left:auto;margin-right:auto">Míralo en movimiento</h2>
+      </div>
+      <div class="wrap-wide">
+        <div class="video-frame" id="video-player" data-video-id="VIDEO_ID">
+          <img src="assets/banner-taller.jpg" alt="Vista previa del video del prototipo" width="1800" height="1012" loading="lazy">
+          <button class="video-play" type="button" aria-label="Reproducir video"><span>▶</span></button>
+        </div>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ GUÍA 2 MINUTOS ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-guia">
-      <span class="cuadro-num">Pruébalo tú mismo</span>
-      <h2 id="h-guia">Guía de prueba de 2 minutos (para evaluadores)</h2>
-      <div class="guide">
-        <ol>
-          <li>Entrar al taller.</li>
-          <li>Nuevo proyecto → elige vertical u horizontal.</li>
-          <li>Captura 5 cuadros moviendo un objeto.</li>
-          <li>Guardar → reproduce.</li>
-          <li>Exporta un GIF.</li>
-        </ol>
-        <a class="btn btn-primary" href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo →</a>
+    <!-- ============ VALIDACIÓN / ANIMAKIDS ============ -->
+    <section class="section" aria-labelledby="h-val">
+      <div class="wrap reveal">
+        <span class="kicker">04 · Validación</span>
+        <h2 id="h-val">Animakids: la prueba de campo</h2>
+        <span class="chip">Animakids 2026 · Colegio Montessori Yerpún, Quilpué</span>
+        <p class="lead">No es una idea: <mark>ya lo probamos un año escolar.</mark> Un laboratorio controlado dentro de la sala de clases para evaluar la didáctica y la metodología con niños y niñas: una hora semanal, de abril a noviembre.</p>
+        <div class="stat-grid">
+          <div class="stat"><div class="big">32</div><p>sesiones de una hora</p></div>
+          <div class="stat"><div class="big">15</div><p>niños con solo 2 celulares</p></div>
+          <div class="stat"><div class="big">2×</div><p>el interés duplicó lo esperado: lista de espera del doble</p></div>
+          <div class="stat hl"><div class="big">$3 M</div><p>recaudados: 15 niños × $25.000 al mes × 8 meses</p></div>
+        </div>
+        <div class="gallery">
+          <figure><img src="assets/brand-002.png" alt="Figura de plasticina creada por un niño en el taller" width="612" height="355" loading="lazy"></figure>
+          <figure><img src="assets/h-brand-001.jpg" alt="Personaje de plasticina sobre fondo verde" width="1200" height="866" loading="lazy"></figure>
+          <figure><img src="assets/brand-005.png" alt="Niña animando con el celular en el taller" width="628" height="419" loading="lazy"></figure>
+        </div>
+        <div class="cards3">
+          <div class="card"><h3>Universidad de Valparaíso</h3><p>Apoyo formal de la Escuela de Diseño: laboratorios, infraestructura y estudiantes para prototipar y testear la app.</p></div>
+          <div class="card"><h3>El colegio repite en 2027</h3><p>Por los resultados, el taller vuelve, esta vez <strong>usando nuestro MVP</strong>.</p></div>
+          <div class="card"><h3>Prototipo funcionando</h3><p>Demo pública en demo.blackquack.cl y muestra en preFIDA Escolar 2026.</p></div>
+        </div>
+        <p class="footnote">Durante el taller se usó <strong>Stop Motion Studio Pro</strong> como herramienta de captura, mientras —a partir de esa misma experiencia— se construía el prototipo de BlackQuack, que tuvo algunas sesiones de uso con niños.</p>
       </div>
     </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ TECNOLOGÍA ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-tecnologia">
-      <span class="cuadro-num">03 · Tecnología e innovación</span>
-      <h2 id="h-tecnologia">Una capa de aula <span class="yel">que no existe en el mercado.</span></h2>
-      <p>La cámara y el editor existen en muchas apps. Nosotros construimos lo que falta para que funcionen con 30 niños, en cinco componentes propios:</p>
-      <div class="card-grid">
-        <div class="card"><h3 class="yel">Sincronización local-first</h3>Trabajo en clase y en casa con conexión intermitente, sin perder un cuadro.</div>
-        <div class="card"><h3 class="yel">Identidad sin correo</h3>Segura para menores y alineada con la Ley 21.719.</div>
-        <div class="card"><h3 class="yel">Kiosco ligero</h3>Fija las tablets desde el celular del docente, sin soporte técnico.</div>
-        <div class="card"><h3 class="yel">Grafo del proceso creativo</h3>Autoría de cada cuadro, versión y rol.</div>
-        <div class="card"><h3 class="yel">Indicadores del proceso</h3>Iteraciones y correcciones convertidas en datos.</div>
-      </div>
-      <p class="quote">No automatizamos la creatividad con IA. Quitamos las barreras técnicas sin quitarle al niño la experiencia de crear.</p>
-      <figure class="photo"><img src="assets/banner-taller.jpg" alt="Montaje de captura stop-motion: un celular registra la escena cuadro a cuadro" width="1800" height="1200" loading="lazy"></figure>
-    </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ ANIMAKIDS: VALIDACIÓN ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-animakids">
-      <span class="cuadro-num">04 · Validación</span>
-      <h2 id="h-animakids">Animakids: la prueba de campo</h2>
-      <p><span class="chip">Animakids 2026 · Colegio Montessori Yerpún, Quilpué</span></p>
-      <p class="lead">No es una idea: <mark>ya lo probamos un año escolar.</mark> Un laboratorio controlado dentro de la sala de clases para evaluar la didáctica y la metodología: una hora semanal, de abril a noviembre.</p>
-      <div class="card-grid">
-        <div class="card"><div class="big">32</div>sesiones de una hora</div>
-        <div class="card"><div class="big">15</div>niños con solo 2 celulares</div>
-        <div class="card"><div class="big">2×</div>el interés duplicó lo esperado: lista de espera del doble</div>
-        <div class="card stat-hi"><div class="big yel">$3 M</div>recaudados: 15 niños × $25.000 al mes × 8 meses</div>
-      </div>
-      <div class="gallery">
-        <figure class="photo" style="margin:0"><img src="assets/brand-002.png" alt="Figura de plasticina creada por un niño en el taller" width="612" height="355" loading="lazy"></figure>
-        <figure class="photo" style="margin:0"><img src="assets/h-brand-001.jpg" alt="Personaje de plasticina sobre fondo verde" width="1200" height="866" loading="lazy"></figure>
-        <figure class="photo" style="margin:0"><img src="assets/brand-005.png" alt="Niña animando con el celular en el taller" width="628" height="419" loading="lazy"></figure>
-      </div>
-      <div class="card-grid">
-        <div class="card"><h3>Universidad de Valparaíso</h3>Apoyo formal de la Escuela de Diseño: laboratorios, infraestructura y estudiantes para prototipar y testear la app.</div>
-        <div class="card"><h3>El colegio repite en 2027</h3>Por los resultados, el taller vuelve, esta vez <strong>usando nuestro MVP</strong>.</div>
-        <div class="card"><h3>Prototipo funcionando</h3>Demo pública en demo.blackquack.cl y muestra en preFIDA Escolar 2026.</div>
-      </div>
-    </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
 
     <!-- ============ DIFERENCIACIÓN ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-dif">
-      <span class="cuadro-num">05 · Diferenciación</span>
-      <h2 id="h-dif">Talleres que no escalan y apps <mark>que no entran a la sala.</mark></h2>
-      <div class="table-wrap">
-        <table class="cmp">
-          <tr><th></th><th>Talleres / robótica</th><th>Stop Motion Studio</th><th class="us">BlackQuack</th></tr>
-          <tr><td>Escala sin sumar personas</td><td class="no">✕</td><td class="ok">✓</td><td class="us ok">✓</td></tr>
-          <tr><td>Sala por QR y tablets fijadas</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
-          <tr><td>Grupos con registro de quién hizo qué</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
-          <tr><td>Panel docente y reporte UTP</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
-          <tr><td>Metodología con currículum chileno</td><td>Parcial</td><td>En inglés</td><td class="us ok">✓</td></tr>
-          <tr><td>Código escolar: sigue fuera de clase</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
-          <tr><td>Venta a colegios y soporte en español</td><td class="ok">✓</td><td class="no">✕</td><td class="us ok">✓</td></tr>
-        </table>
+    <section class="section section-tint" aria-labelledby="h-dif">
+      <div class="wrap reveal">
+        <span class="kicker">05 · Diferenciación</span>
+        <h2 id="h-dif">Talleres que no escalan y apps que no entran a la sala</h2>
+        <div class="table-wrap">
+          <table class="cmp">
+            <tr><th scope="col"></th><th scope="col">Talleres / robótica</th><th scope="col">Stop Motion Studio</th><th scope="col" class="us">BlackQuack</th></tr>
+            <tr><th scope="row">Escala sin sumar personas</th><td class="no">✕</td><td class="ok">✓</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Sala por QR y tablets fijadas</th><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Grupos con registro de quién hizo qué</th><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Panel docente y reporte UTP</th><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Metodología con currículum chileno</th><td>Parcial</td><td>En inglés</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Código escolar: sigue fuera de clase</th><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+            <tr><th scope="row">Venta a colegios y soporte en español</th><td class="ok">✓</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+          </table>
+        </div>
       </div>
-      <p class="quote">Stop Motion Studio recomienda trabajar en grupos con roles, pero no registra quién hizo qué. BlackQuack convierte esa recomendación en funcionalidad.</p>
     </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
 
     <!-- ============ MODELO DE NEGOCIO ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-negocio">
-      <span class="cuadro-num">06 · Modelo de negocio</span>
-      <h2 id="h-negocio">Paga el colegio. <span class="yel">Los niños crean gratis.</span></h2>
-      <p>SaaS B2B con licencia anual por colegio, sin hardware ni instalación. Docentes y estudiantes no pagan.</p>
-      <div class="plans">
-        <div class="plan">
-          <span class="plan-badge">Gratis</span>
-          <h3>Personal</h3>
-          <div class="price">$0 <small>para siempre</small></div>
-          <ul><li>Captura y línea de tiempo</li><li>Versiones en el dispositivo</li><li>Exporta 720p con marca de agua</li><li>Puerta de entrada para familias</li></ul>
+    <section class="section" aria-labelledby="h-neg">
+      <div class="wrap reveal">
+        <span class="kicker">06 · Modelo de negocio</span>
+        <h2 id="h-neg">Paga el colegio. Los niños crean gratis.</h2>
+        <p class="lead">SaaS B2B con licencia anual por colegio, sin hardware ni instalación. Docentes y estudiantes no pagan.</p>
+        <div class="plans">
+          <div class="plan"><span class="plan-badge">Gratis</span><h3>Personal</h3><div class="price">$0 <small>para siempre</small></div><ul><li>Captura y línea de tiempo</li><li>Versiones en el dispositivo</li><li>Exporta 720p con marca de agua</li><li>Puerta de entrada para familias</li></ul></div>
+          <div class="plan free"><span class="plan-badge">Gratis con licencia</span><h3>Código escolar</h3><div class="price">$0 <small>incluido en el colegio</small></div><ul><li>Sigue animando fuera de clase</li><li>Cada avance se registra en su proyecto</li><li>El docente lo ve en su panel</li><li>Sin correo ni datos personales</li></ul></div>
+          <div class="plan"><span class="plan-badge">Talleres</span><h3>Licencia Taller</h3><div class="price">$290.000 <small>al año</small></div><ul><li>Hasta 60 estudiantes y 2 docentes</li><li>Sala por QR, kiosco y grupos</li><li>Panel docente y códigos escolares</li></ul></div>
+          <div class="plan star"><span class="plan-badge">★ Recomendado</span><h3>Licencia Colegio</h3><div class="price">$790.000 <small>al año</small></div><ul><li>Hasta 300 estudiantes, docentes sin límite</li><li>Reporte UTP por objetivos de aprendizaje</li><li>Metodología, implementación y soporte</li></ul></div>
         </div>
-        <div class="plan free">
-          <span class="plan-badge">Gratis con licencia</span>
-          <h3>Código escolar</h3>
-          <div class="price">$0 <small>incluido en el colegio</small></div>
-          <ul><li>Sigue animando fuera de clase</li><li>Cada avance se registra en su proyecto</li><li>El docente lo ve en su panel</li><li>Sin correo ni datos personales</li></ul>
+        <p class="fine">Redes y SLEP: cotización por volumen, desde $2.000 por estudiante. Capacitación docente aparte. Plan Personal pago: $2.990 al mes.</p>
+        <h3 style="margin-top:40px">Proyección (hipótesis, escenario base)</h3>
+        <div class="table-wrap">
+          <table class="cmp">
+            <tr><th scope="col">Horizonte</th><th scope="col">Colegios</th><th scope="col">Ingreso anual</th><th scope="col">Motor</th></tr>
+            <tr><th scope="row"><strong>Año 1</strong></th><td>5</td><td>CLP 2,0 M</td><td>Colegios fundadores en Valparaíso</td></tr>
+            <tr><th scope="row"><strong>Año 2</strong></th><td>30</td><td>CLP 23,7 M</td><td>Redes de colegios y flujo 7.° a 4.° medio</td></tr>
+            <tr><th scope="row"><strong>Año 5</strong></th><td>300</td><td>CLP 237 M</td><td>SLEP, módulos y Latinoamérica</td></tr>
+          </table>
         </div>
-        <div class="plan">
-          <span class="plan-badge">Talleres</span>
-          <h3>Licencia Taller</h3>
-          <div class="price">$290.000 <small>al año</small></div>
-          <ul><li>Hasta 60 estudiantes y 2 docentes</li><li>Sala por QR, kiosco y grupos</li><li>Panel docente y códigos escolares</li></ul>
-        </div>
-        <div class="plan star">
-          <span class="plan-badge">★ Recomendado</span>
-          <h3>Licencia Colegio</h3>
-          <div class="price">$790.000 <small>al año</small></div>
-          <ul><li>Hasta 300 estudiantes, docentes sin límite</li><li>Reporte UTP por objetivos de aprendizaje</li><li>Metodología, implementación y soporte</li></ul>
-        </div>
+        <p class="after-note">En el escenario ambicioso, el año 5 llega a <strong>900 colegios y cerca de CLP 990 M</strong> anuales. Margen bruto objetivo sobre 85%. Las cifras se validan en BUILD.</p>
       </div>
-      <p class="fine">Redes y SLEP: cotización por volumen, desde $2.000 por estudiante. Capacitación docente aparte. Plan Personal pago: $2.990 al mes.</p>
-      <h3 style="margin-top:36px">Proyección (hipótesis, escenario base)</h3>
-      <div class="table-wrap">
-        <table class="cmp">
-          <tr><th>Horizonte</th><th>Colegios</th><th>Ingreso anual</th><th>Motor</th></tr>
-          <tr><td><strong>Año 1</strong></td><td>5</td><td>CLP 2,0 M</td><td>Colegios fundadores en Valparaíso</td></tr>
-          <tr><td><strong>Año 2</strong></td><td>30</td><td>CLP 23,7 M</td><td>Redes de colegios y flujo 7.° a 4.° medio</td></tr>
-          <tr><td><strong class="yel">Año 5</strong></td><td>300</td><td>CLP 237 M</td><td>SLEP, módulos y Latinoamérica</td></tr>
-        </table>
-      </div>
-      <p>En el escenario ambicioso, el año 5 llega a <strong class="yel">900 colegios y cerca de CLP 990 M</strong> anuales. Margen bruto objetivo sobre 85%. Las cifras se validan en BUILD.</p>
     </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
 
     <!-- ============ POR QUÉ CHILE ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-chile">
-      <span class="cuadro-num">07 · Por qué Chile y por qué escala</span>
-      <h2 id="h-chile">Chile es el laboratorio. <mark>Latinoamérica es el mercado.</mark></h2>
-      <div class="card-grid">
-        <div class="card"><h3>Por qué partir aquí</h3>Tenemos dónde pilotear, las industrias creativas están en auge, la animación chilena ganó un Oscar y la Ley 21.801 empuja a usar los equipos del colegio.</div>
-        <div class="card"><h3>Por qué escala</h3>El problema es global. Sin hardware, con implementación remota y un currículum que se carga como dato: adaptar a otro país no exige reprogramar.</div>
+    <section class="section section-tint" aria-labelledby="h-chile">
+      <div class="wrap reveal">
+        <span class="kicker">07 · Por qué Chile y por qué escala</span>
+        <h2 id="h-chile">Chile es el laboratorio. Latinoamérica es el mercado.</h2>
+        <div class="cards3" style="grid-template-columns:1fr 1fr">
+          <div class="card"><h3>Por qué partir aquí</h3><p>Tenemos dónde pilotear, las industrias creativas están en auge, la animación chilena ganó un Oscar y la Ley 21.801 empuja a usar los equipos del colegio.</p></div>
+          <div class="card"><h3>Por qué escala</h3><p>El problema es global. Sin hardware, con implementación remota y un currículum que se carga como dato: adaptar a otro país no exige reprogramar.</p></div>
+        </div>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ EL EQUIPO ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-equipo">
-      <span class="cuadro-num">El equipo</span>
-      <h2 id="h-equipo">Quiénes lo construyen</h2>
-      <div class="team">
-        <article class="member">
-          <img src="assets/kb.png" alt="Karen Bravo Villarroel" width="207" height="238" loading="lazy">
-          <h3>Karen Bravo Villarroel</h3>
-          <p class="role">Líder del proyecto y CEO</p>
-          <ul>
-            <li>Dedicación completa; conduce la validación comercial y el piloto.</li>
-            <li>Ingeniera en Marketing (UDP) y MBA en Gestión de Negocios (U. Central).</li>
-            <li>Mentora de la Incubadora Chrysalis PUCV desde 2024.</li>
-          </ul>
-        </article>
-        <article class="member">
-          <img src="assets/team-paulo.svg" alt="Paulo Correa Vargas" width="96" height="96">
-          <h3>Paulo Correa Vargas</h3>
-          <p class="role">Cofundador, CPO y líder técnico</p>
-          <ul>
-            <li>Docente de Animación Digital en la PUCV (2025) y parte del comité que diseñó su currículo.</li>
-            <li>Diseñador gráfico (ilustración y animación) y de interfaces; Magíster en Artes Mediales.</li>
-            <li>Lidera Animakids en el Colegio Montessori Yerpún.</li>
-          </ul>
-        </article>
+    <!-- ============ EQUIPO ============ -->
+    <section class="section" aria-labelledby="h-eq">
+      <div class="wrap reveal">
+        <span class="kicker">El equipo</span>
+        <h2 id="h-eq">Quiénes lo construyen</h2>
+        <div class="team">
+          <article class="member">
+            <figure class="photo"><img src="assets/kb.png" alt="Karen Bravo Villarroel" width="207" height="238" loading="lazy"></figure>
+            <div class="body">
+              <h3>Karen Bravo Villarroel</h3>
+              <p class="role">Líder del proyecto y CEO</p>
+              <ul>
+                <li>Dedicación completa; conduce la validación comercial y el piloto.</li>
+                <li>Ingeniera en Marketing (UDP) y MBA en Gestión de Negocios (U. Central).</li>
+                <li>Mentora de la Incubadora Chrysalis PUCV desde 2024.</li>
+              </ul>
+            </div>
+          </article>
+          <article class="member">
+            <figure class="photo"><img src="assets/team-paulo.svg" alt="Paulo Correa Vargas" width="400" height="400" loading="lazy"></figure>
+            <div class="body">
+              <h3>Paulo Correa Vargas</h3>
+              <p class="role">Cofundador, CPO y líder técnico</p>
+              <ul>
+                <li>Docente de Animación Digital en la PUCV (2025) y parte del comité que diseñó su currículo.</li>
+                <li>Diseñador gráfico y de interfaces; Magíster en Artes Mediales.</li>
+                <li>Lidera Animakids en el Colegio Montessori Yerpún.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+        <p class="team-note">Karen y Paulo trabajan juntos desde 2020.</p>
       </div>
-      <p class="team-note">Karen y Paulo trabajan juntos desde 2020.</p>
     </section>
-
-    <div class="filmstrip" aria-hidden="true"></div>
 
     <!-- ============ INSTITUCIONES ============ -->
-    <section class="cuadro wrap" aria-labelledby="h-colab">
-      <span class="cuadro-num">Colaboración</span>
-      <h2 id="h-colab">Instituciones que nos acompañan</h2>
-      <div class="collab">
-        <div class="panel">
-          <img src="assets/logo-yerpun.svg" alt="Colegio Montessori Yerpún" loading="lazy">
-          <h3>Colegio Montessori Yerpún</h3>
-          <p class="sub">Institución educacional dispuesta a probar la plataforma en su taller de animación.</p>
-        </div>
-        <div class="panel">
-          <img src="assets/logo-uv-diseno.svg" alt="Escuela de Diseño, Universidad de Valparaíso" loading="lazy">
-          <h3>Escuela de Diseño, Universidad de Valparaíso</h3>
-          <p class="sub">Su dirección manifestó el interés de la Escuela en explorar instancias de colaboración con BlackQuack Studio, reconociendo el potencial de la propuesta para vincular el ámbito universitario y el escolar.</p>
-          <div class="feature"><span class="dot"></span><span><strong>Infraestructura y recursos técnicos:</strong> posible acceso a laboratorios y espacios de prototipado y experimentación audiovisual.</span></div>
-          <div class="feature"><span class="dot"></span><span><strong>Validación y experiencia de usuario:</strong> evaluaciones de usabilidad con estudiantes de Diseño.</span></div>
-          <div class="feature"><span class="dot"></span><span><strong>Vinculación y difusión:</strong> espacios de encuentro y exhibición de animación escolar, con el FIDA Escolar como referencia.</span></div>
-          <p class="note-small">Carta de interés de la Dirección de la Escuela de Diseño, noviembre de 2026.</p>
+    <section class="section section-tint" aria-labelledby="h-col">
+      <div class="wrap reveal">
+        <span class="kicker">Colaboración</span>
+        <h2 id="h-col">Instituciones que nos acompañan</h2>
+        <div class="collab">
+          <div class="panel">
+            <img src="assets/logo-yerpun.svg" alt="Colegio Montessori Yerpún">
+            <h3>Colegio Montessori Yerpún</h3>
+            <p class="sub">Institución educacional dispuesta a probar la plataforma en su taller de animación.</p>
+          </div>
+          <div class="panel">
+            <img src="assets/logo-uv-diseno.svg" alt="Escuela de Diseño, Universidad de Valparaíso">
+            <h3>Escuela de Diseño, Universidad de Valparaíso</h3>
+            <p class="sub">Su dirección manifestó el interés de la Escuela en explorar instancias de colaboración con BlackQuack Studio, reconociendo el potencial de la propuesta para vincular el ámbito universitario y el escolar.</p>
+            <div class="feature"><span class="d"></span><span><strong>Infraestructura y recursos técnicos:</strong> posible acceso a laboratorios y espacios de prototipado y experimentación audiovisual.</span></div>
+            <div class="feature"><span class="d"></span><span><strong>Validación y experiencia de usuario:</strong> evaluaciones de usabilidad con estudiantes de Diseño.</span></div>
+            <div class="feature"><span class="d"></span><span><strong>Vinculación y difusión:</strong> espacios de encuentro y exhibición de animación escolar, con el FIDA Escolar como referencia.</span></div>
+            <p class="note-small">Carta de interés de la Dirección de la Escuela de Diseño, noviembre de 2026.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <div class="filmstrip" aria-hidden="true"></div>
-
-    <!-- ============ CTA FINAL ============ -->
-    <section class="cuadro wrap cta-final" aria-labelledby="h-cta">
-      <h2 id="h-cta" class="visually-hidden" style="position:absolute;left:-999px">Prueba el prototipo</h2>
-      <img class="cta-logo" src="assets/logo-light.svg" alt="BlackQuack Studio" width="140" height="100">
-      <p class="quote">En una época de inmediatez, devolvemos a los niños el tiempo de crear.</p>
-      <span class="cuadro-num">Prueba el prototipo</span><br>
-      <a class="cta-big" href="https://demo.blackquack.cl" target="_blank" rel="noopener">demo.blackquack.cl →</a>
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-bottom:0">
+      <div class="cta-wrap reveal">
+        <div class="cta-card">
+          <h2>En una época de inmediatez, devolvemos a los niños el tiempo de crear.</h2>
+          <p>Prueba el prototipo ahora mismo, en tu teléfono o tablet.</p>
+          <a class="btn btn-yellow" href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir demo.blackquack.cl →</a>
+        </div>
+      </div>
     </section>
   </main>
 
-  <footer class="wrap">
-    <img class="hero-logo" src="assets/logo-nav-light.svg" alt="BlackQuack Studio" style="margin:0 auto 6px;animation:none">
-    <p class="slogan">Make Some Noise. Make Some Quack.</p>
-    <p><a href="mailto:contacto@blackquack.cl">contacto@blackquack.cl</a> · <a href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo</a></p>
-    <p class="foot-meta">BlackQuack Studio · Start-Up Chile BUILD 2026 · Prototipo <span data-version>v0.1.0</span></p>
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+    <div class="wrap-wide">
+      <div class="footer-grid">
+        <div>
+          <img class="f-logo" src="assets/logo-nav-dark.svg" alt="BlackQuack Studio" onerror="this.src='assets/logo-nav-light.svg'">
+          <p class="footer-slogan">Make Some Noise. Make Some Quack.</p>
+          <p style="max-width:34ch">Los niños crean, la tecnología acompaña. Un taller de stop motion que funciona en el aula.</p>
+        </div>
+        <div>
+          <h3>Producto</h3>
+          <a href="https://demo.blackquack.cl" target="_blank" rel="noopener">Abrir prototipo</a>
+          <a href="#video">Ver video</a>
+          <a href="#h-feat">Funcionalidades</a>
+        </div>
+        <div>
+          <h3>Proyecto</h3>
+          <a href="#h-val">Validación · Animakids</a>
+          <a href="#h-neg">Modelo de negocio</a>
+          <a href="mailto:contacto@blackquack.cl">contacto@blackquack.cl</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>BlackQuack Studio · Start-Up Chile BUILD 2026</span>
+        <span>Prototipo <span data-version>v0.1.0</span> · noviembre 2026</span>
+      </div>
+    </div>
   </footer>
 
   <script src="app.js" defer></script>

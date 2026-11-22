@@ -5,8 +5,9 @@ brochure (fuente: `tema-1.html`) con el estilo de la landing. Independiente de l
 
 - **Prod:** https://blackquack-landing.pages.dev (dominio final: `build.blackquack.cl`)
 - **Desplegar:** `./scripts/deploy_landing.sh` (genera `version.json` desde `pubspec.yaml` y sube a Cloudflare Pages, proyecto `blackquack-landing`). No toca la app ni el apex.
-- **Lighthouse (móvil):** rendimiento 98, accesibilidad 96, CLS 0.
-- **Tipografía:** Bricolage Grotesque (títulos) + Inter (texto), vía Google Fonts.
+- **Lighthouse (móvil):** rendimiento 96, accesibilidad 96, CLS 0.
+- **Tipografía:** Inter (títulos y texto), vía Google Fonts.
+- **Diseño:** blanco, contenedor 1440, hero full-bleed con foto + overlay, proceso numerado en oscuro, cards que se apilan con el scroll, bento de funcionalidades, equipo con fotos grandes, CTA + footer. Full responsive.
 - `tema-1.html` queda como referencia de contenido (no se publica como página).
 
 ## Quitar el `noindex` (cuando sea pública)
@@ -26,7 +27,7 @@ Reemplaza `data-video-id="VIDEO_ID"` en `index.html` por el ID real de YouTube (
 Son placeholders estáticos. Reemplaza el archivo con el mismo nombre (o cambia la ruta en `index.html`). Ya subiste algunos reales (`kb.png`, `banner-taller.jpg`, `g-taller-002.jpg`, `brand-*.png`, `h-brand-001.jpg`): dime cuál va en cada slot y los conecto.
 
 Ya conectadas (imágenes reales):
-- Portada → `g-taller-002.jpg` · Tecnología → `banner-taller.jpg` · Galería Animakids → `brand-002.png`, `h-brand-001.jpg`, `brand-005.png` · Karen → `kb.png` · Cierre (CTA) y favicon → `logo-nav-light.svg` / `logo-light.svg` (stacked).
+- Hero (fondo) → `hero.jpg` (derivado optimizado de `g-taller-002.jpg`; si cambias la foto, reemplaza `hero.jpg` o regénerala) · Video demo → `banner-taller.jpg` · Galería Animakids → `brand-002.png`, `h-brand-001.jpg`, `brand-005.png` · Karen → `kb.png` · Logo nav/footer → `logo-nav-light.svg` / `logo-nav-dark.svg`.
 
 Aún placeholder (reemplazar):
 | Slot (archivo actual) | Uso | Tamaño sugerido |
