@@ -68,7 +68,7 @@
   }
 
   // ---- Video: carga diferida del iframe (youtube-nocookie) al tocar ----
-  var video = document.getElementById('video');
+  var video = document.getElementById('video-player');
   if (video) {
     var load = function () {
       var id = video.getAttribute('data-video-id');

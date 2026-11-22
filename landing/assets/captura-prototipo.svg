@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Captura del prototipo · demo.blackquack.cl">
+  <rect width="100%" height="100%" fill="#EFEBE3"/>
+  <rect x="10" y="10" width="1180" height="780" fill="none" stroke="#D8D1C2" stroke-width="2" stroke-dasharray="10 8"/>
+  <circle cx="600" cy="286" r="57" fill="none" stroke="#B98AF0" stroke-width="4"/>
+  <path d="M572 258 l57 28 l-57 28 z" fill="#B98AF0"/>
+  <text x="50%" y="55%" fill="#8A8578" font-family="Inter, Arial, sans-serif" font-size="57" font-weight="600" text-anchor="middle">Captura del prototipo · demo.blackquack.cl</text>
+</svg>

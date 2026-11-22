@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlackQuack Studio · Brochure BUILD</title>
+<style>
+  :root { --ink:#111; --cream:#F6F1E7; --yel:#FFC83D; --cor:#FF5A3C; --mut:#6b655c; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; background:#fff; color:var(--ink); line-height:1.5; }
+  section { padding: 56px 20px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .dark { background: #FAFAF8; }
+  .label { font-family: ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--cor); }
+  
+  h1 { font-size: clamp(36px, 7vw, 60px); line-height: 1; letter-spacing: -.03em; margin: 16px 0; }
+  h2 { font-size: clamp(26px, 4.5vw, 38px); line-height: 1.1; letter-spacing: -.02em; margin: 10px 0 20px; }
+  h3 { margin: 0 0 6px; font-size: 17px; }
+  .yel { color: var(--cor); }
+  mark { background: linear-gradient(transparent 55%, var(--yel) 55%); color: inherit; }
+  .lead { font-size: 19px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 20px; }
+  .card { background:#fff; border:1px solid #e4dccd; border-radius:10px; padding:18px; }
+  .card{box-shadow:0 2px 10px rgba(0,0,0,.05)}
+  .big { font-size: 34px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin-bottom: 6px; }
+  .photo { border: 3px dashed #b9b0a1; border-radius: 10px; min-height: 200px; display:flex; align-items:center; justify-content:center; color:#9a917f; font-family: ui-monospace, monospace; font-size: 12px; text-transform: uppercase; text-align:center; padding: 12px; margin-top: 20px; }
+  
+  .tag { display:inline-block; background:var(--yel); color:var(--ink); padding:4px 10px; border-radius:4px; font-family: ui-monospace, monospace; font-size:12px; text-transform:uppercase; }
+  .quote { border-left: 6px solid var(--yel); padding-left: 16px; font-size: 21px; font-weight: 600; margin: 28px 0; }
+  ul { padding-left: 20px; } li { margin-bottom: 8px; }
+  .table-wrap { overflow-x: auto; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+  th, td { padding: 10px; border-bottom: 1px solid #d9d0bf; text-align: left; }
+  th { font-family: ui-monospace, monospace; font-size: 12px; text-transform: uppercase; color: var(--mut); font-weight: 400; }
+  .us { background:#fff6d6; font-weight:600; }
+  .ok { color:#1a9d55; font-weight:800; } .no { color:var(--cor); font-weight:800; }
+  .cta { font-size: 24px; font-weight: 800; color: var(--yel); text-decoration: none; }
+  .plans { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); margin-top:24px; }
+  .plan { background:#fff; border:1px solid #e6e3dc; border-radius:16px; padding:22px; box-shadow:0 4px 18px rgba(0,0,0,.06); position:relative; }
+  .plan.free { border:2px solid #1a9d55; }
+  .plan.star { background:#FFF4D1; border:2px solid var(--yel); }
+  .pill { display:inline-block; border-radius:99px; padding:4px 12px; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; background:#f1f0ec; }
+  .free .pill { background:#1a9d55; color:#fff; } .star .pill { background:var(--cor); color:#fff; } .taller .pill { background:#FFF4D1; }
+  .price { font-size:34px; font-weight:800; letter-spacing:-.03em; margin:8px 0 2px; } .price small { font-size:14px; font-weight:400; color:var(--mut); }
+  .plan ul { padding-left:18px; font-size:15px; margin:12px 0 0; }
+  .highlight { background:#FFF4D1; border:2px solid var(--yel); border-radius:14px; padding:20px; margin-top:24px; }
+  footer { padding: 24px 20px; text-align:center; font-family: ui-monospace, monospace; font-size: 12px; color: var(--mut); }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<section class="dark">
+  <div class="wrap">
+    <span class="label">BlackQuack Studio · Start-Up Chile BUILD 2026</span>
+    <h1>Crear requiere tiempo.<br><span class="yel">La tecnología debe hacerlo posible.</span></h1>
+    <p class="lead">Convertimos las tablets y celulares del colegio en <strong>estaciones de animación cuadro a cuadro</strong> seguras, sin internet y pensadas para un curso completo: niños y niñas que crean con las manos, y docentes que ven el proceso de cada uno.</p>
+    <div class="photo">Foto principal · niños animando en el taller Animakids</div>
+  </div>
+</section>
+
+<!-- PROBLEMA -->
+<section>
+  <div class="wrap">
+    <span class="label">01 · El problema</span>
+    <h2>Una generación que recibe el resultado <mark>antes que el esfuerzo.</mark></h2>
+    <p class="lead">Redes sociales, videojuegos e IA generativa comparten una lógica: la recompensa llega primero. Es un fenómeno global, y la OCDE ya mide su costo en la sala de clases.</p>
+    <div class="grid">
+      <div class="card"><div class="big">6,6% → 11,4%</div>Lectores «apresurados», que responden rápido y mal, casi se duplicaron entre 2018 y 2025 (PISA 2025).</div>
+      <div class="card"><div class="big">20,1%</div>Estudiantes chilenos con clases de ciencias sin distracción por dispositivos; en la OCDE es 39,2%.</div>
+      <div class="card"><div class="big">+4,5 h</div>Diarias de pantalla por entretención entre los 8 y 12 años; casi nada de ese tiempo es para crear.</div>
+    </div>
+    <p style="margin-top:24px">En pensamiento creativo, Chile iguala a la OCDE generando ideas, pero queda bajo justo en <strong>evaluar y mejorar</strong> lo que crea. Y desde 2026 la <strong>Ley 21.801</strong> saca los celulares personales de la sala, pero las apps de creación están hechas para una persona, no para un curso de 30.</p>
+  </div>
+</section>
+
+<!-- OPORTUNIDAD -->
+<section class="dark">
+  <div class="wrap">
+    <span class="label">La oportunidad · Industrias creativas</span>
+    <div class="grid">
+      <div class="card"><div class="big yel">2,2%</div>del PIB de Chile viene de las industrias creativas.</div>
+      <div class="card"><div class="big yel">150 mil</div>empleos genera el sector en el país.</div>
+      <div class="card"><div class="big yel">Oscar</div>«Historia de un Oso» (2016): la animación chilena compite en el mundo.</div>
+    </div>
+    <p class="lead" style="margin-top:24px">Chile forma animadores en la universidad, pero <span class="yel"><strong>no hay herramientas que impulsen la creatividad desde la infancia, dentro del colegio.</strong></span></p>
+  </div>
+</section>
+
+<!-- SOLUCION -->
+<section>
+  <div class="wrap">
+    <span class="label">02 · La solución</span>
+    <h2>Un taller de animación que <mark>funciona en el aula.</mark></h2>
+    <div class="grid">
+      <div class="card"><h3>1. Abre la sala</h3>El docente proyecta un QR y las tablets se unen en segundos.</div>
+      <div class="card"><h3>2. Fija los equipos</h3>Modo kiosco: sin salir a otras apps y sin publicidad.</div>
+      <div class="card"><h3>3. Crean en grupo</h3>Solos o en equipo, con roles y sin internet.</div>
+      <div class="card"><h3>4. Se ve el proceso</h3>Docente y UTP ven el avance de cada estudiante.</div>
+    </div>
+    <h3 style="margin-top:32px">Funcionalidades, en simple</h3>
+    <ul>
+      <li><strong>Captura cuadro a cuadro</strong> con «papel cebolla» y una línea de tiempo fácil de ordenar.</li>
+      <li><strong>Perfiles sin correo:</strong> apodo, avatar y clave de imágenes. Un niño de 8 años entra solo.</li>
+      <li><strong>Proyectos de grupo con roles</strong> que rotan, y registro de quién hizo cada cuadro.</li>
+      <li><strong>Funciona sin internet:</strong> todo ocurre en el dispositivo.</li>
+      <li><strong>Versiones:</strong> cada intento se guarda para comparar, corregir y mejorar.</li>
+      <li><strong>Código escolar:</strong> el niño sigue animando fuera de la clase y cada avance se registra como actividad de su proyecto escolar.</li>
+      <li><strong>Panel docente y reporte UTP</strong> ligado a los objetivos de aprendizaje chilenos.</li>
+      <li><strong>Modo proyección y exportación</strong> en video.</li>
+    </ul>
+    <div class="highlight"><span class="label">Nuevo · Código escolar</span><p class="lead" style="margin:8px 0 0"><strong>Con su código escolar, el niño sigue animando fuera de la clase y cada avance queda registrado como actividad de su proyecto escolar.</strong> El docente lo ve en su panel.</p></div>
+    <div class="grid">
+      <div class="card" style="border:3px solid var(--yel)"><span class="tag">Fase 1 · BUILD</span><h3 style="margin-top:10px">3.° a 6.° básico · 8 a 12 años</h3>Flujo guiado y lúdico, donde la metodología ya está probada.</div>
+      <div class="card"><span class="tag">Fase 2 · Crecimiento</span><h3 style="margin-top:10px">7.° básico a 4.° medio · 12 a 17 años</h3>Flujo propio para jóvenes sobre la misma base de aula.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TECNOLOGIA -->
+<section class="dark">
+  <div class="wrap">
+    <span class="label">03 · Tecnología e innovación</span>
+    <h2>Una capa de aula <span class="yel">que no existe en el mercado.</span></h2>
+    <p>La cámara y el editor existen en muchas apps. Nosotros construimos lo que falta para que funcionen con 30 niños, en cinco componentes propios:</p>
+    <div class="grid">
+      <div class="card"><h3 class="yel">Sincronización local-first</h3>Trabajo en clase y en casa con conexión intermitente, sin perder un cuadro.</div>
+      <div class="card"><h3 class="yel">Identidad sin correo</h3>Segura para menores y alineada con la Ley 21.719.</div>
+      <div class="card"><h3 class="yel">Kiosco ligero</h3>Fija las tablets desde el celular del docente, sin soporte técnico.</div>
+      <div class="card"><h3 class="yel">Grafo del proceso creativo</h3>Autoría de cada cuadro, versión y rol.</div>
+      <div class="card"><h3 class="yel">Indicadores del proceso</h3>Iteraciones y correcciones convertidas en datos.</div>
+    </div>
+    <p class="quote">No automatizamos la creatividad con IA. Quitamos las barreras técnicas sin quitarle al niño la experiencia de crear.</p>
+    <div class="photo">Captura del prototipo · demo.blackquack.cl</div>
+  </div>
+</section>
+
+<!-- VALIDACION -->
+<section>
+  <div class="wrap">
+    <span class="label">04 · Validación</span>
+    <h2>No es una idea: <mark>ya lo probamos un año escolar.</mark></h2>
+    <p><span class="tag">Animakids 2026 · Colegio Montessori Yerpún, Quilpué</span></p>
+    <p>Un laboratorio controlado dentro de la sala de clases para evaluar la didáctica y la metodología con niños y niñas: una hora semanal, de abril a noviembre.</p>
+    <div class="grid">
+      <div class="card"><div class="big">32</div>sesiones de una hora</div>
+      <div class="card"><div class="big">15</div>niños con solo 2 celulares</div>
+      <div class="card"><div class="big">2×</div>el interés duplicó lo esperado: lista de espera del doble</div>
+      <div class="card" style="background:var(--yel);border-color:var(--yel)"><div class="big">$3 M</div>recaudados: 15 niños × $25.000 al mes × 8 meses</div>
+    </div>
+    <div class="photo">Fotos del taller Animakids</div>
+    <div class="grid">
+      <div class="card"><h3>Universidad de Valparaíso</h3>Apoyo formal de la Escuela de Diseño: laboratorios, infraestructura y estudiantes para prototipar y testear la app.</div>
+      <div class="card"><h3>El colegio repite en 2027</h3>Por los resultados, el taller vuelve, esta vez <strong>usando nuestro MVP</strong>.</div>
+      <div class="card"><h3>Prototipo funcionando</h3>Demo pública en demo.blackquack.cl y muestra en preFIDA Escolar 2026.</div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPETENCIA -->
+<section>
+  <div class="wrap">
+    <span class="label">05 · Diferenciación</span>
+    <h2>Talleres que no escalan y apps <mark>que no entran a la sala.</mark></h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th></th><th>Talleres / robótica</th><th>Stop Motion Studio</th><th class="us">BlackQuack</th></tr>
+        <tr><td>Escala sin sumar personas</td><td class="no">✕</td><td class="ok">✓</td><td class="us ok">✓</td></tr>
+        <tr><td>Sala por QR y tablets fijadas</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+        <tr><td>Grupos con registro de quién hizo qué</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+        <tr><td>Panel docente y reporte UTP</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+        <tr><td>Metodología con currículum chileno</td><td>Parcial</td><td>En inglés</td><td class="us ok">✓</td></tr>
+        <tr><td>Código escolar: sigue fuera de clase</td><td class="no">✕</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+        <tr><td>Venta a colegios y soporte en español</td><td class="ok">✓</td><td class="no">✕</td><td class="us ok">✓</td></tr>
+      </table>
+    </div>
+    <p class="quote">Stop Motion Studio recomienda trabajar en grupos con roles, pero no registra quién hizo qué. BlackQuack convierte esa recomendación en funcionalidad.</p>
+  </div>
+</section>
+
+<!-- NEGOCIO -->
+<section class="dark">
+  <div class="wrap">
+    <span class="label">06 · Modelo de negocio</span>
+    <h2>Paga el colegio. <span class="yel">Los niños crean gratis.</span></h2>
+    <p>SaaS B2B con licencia anual por colegio, sin hardware ni instalación. Docentes y estudiantes no pagan.</p>
+    <div class="plans">
+      <div class="plan"><span class="pill">Gratis</span><h3 style="margin-top:14px">Personal</h3><div class="price">$0 <small>para siempre</small></div>
+        <ul><li>Captura y línea de tiempo</li><li>Versiones en el dispositivo</li><li>Exporta 720p con marca de agua</li><li>Puerta de entrada para familias</li></ul></div>
+      <div class="plan free"><span class="pill">Gratis con licencia</span><h3 style="margin-top:14px">Código escolar</h3><div class="price">$0 <small>incluido en el colegio</small></div>
+        <ul><li>Sigue animando fuera de clase</li><li>Cada avance se registra en su proyecto escolar</li><li>El docente lo ve en su panel</li><li>Sin correo ni datos personales</li></ul></div>
+      <div class="plan taller"><span class="pill">Talleres</span><h3 style="margin-top:14px">Licencia Taller</h3><div class="price">$290.000 <small>al año</small></div>
+        <ul><li>Hasta 60 estudiantes y 2 docentes</li><li>Sala por QR, kiosco y grupos</li><li>Panel docente y códigos escolares</li></ul></div>
+      <div class="plan star"><span class="pill">★ Recomendado</span><h3 style="margin-top:14px">Licencia Colegio</h3><div class="price">$790.000 <small>al año</small></div>
+        <ul><li>Hasta 300 estudiantes, docentes sin límite</li><li>Reporte UTP por objetivos de aprendizaje</li><li>Metodología, implementación y soporte</li></ul></div>
+    </div>
+    <p style="color:var(--mut);font-size:14px">Redes y SLEP: cotización por volumen, desde $2.000 por estudiante. Capacitación docente aparte. Plan Personal pago: $2.990 al mes.</p>
+    <h3 style="margin-top:32px">Proyección (hipótesis, escenario base)</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Horizonte</th><th>Colegios</th><th>Ingreso anual</th><th>Motor</th></tr>
+        <tr><td><strong>Año 1</strong></td><td>5</td><td>CLP 2,0 M</td><td>Colegios fundadores en Valparaíso</td></tr>
+        <tr><td><strong>Año 2</strong></td><td>30</td><td>CLP 23,7 M</td><td>Redes de colegios y flujo 7.° a 4.° medio</td></tr>
+        <tr><td><strong class="yel">Año 5</strong></td><td>300</td><td>CLP 237 M</td><td>SLEP, módulos y Latinoamérica</td></tr>
+      </table>
+    </div>
+    <p>En el escenario ambicioso, el año 5 llega a <strong class="yel">900 colegios y cerca de CLP 990 M</strong> anuales. Margen bruto objetivo sobre 85%. Las cifras se validan en BUILD.</p>
+  </div>
+</section>
+
+<!-- CHILE + EQUIPO -->
+<section>
+  <div class="wrap">
+    <span class="label">07 · Por qué Chile y por qué escala</span>
+    <h2>Chile es el laboratorio. <mark>Latinoamérica es el mercado.</mark></h2>
+    <div class="grid">
+      <div class="card"><h3>Por qué partir aquí</h3>Tenemos dónde pilotear, las industrias creativas están en auge, la animación chilena ganó un Oscar y la Ley 21.801 empuja a usar los equipos del colegio.</div>
+      <div class="card"><h3>Por qué escala</h3>El problema es global. Sin hardware, con implementación remota y un currículum que se carga como dato: adaptar a otro país no exige reprogramar.</div>
+    </div>
+    <h3 style="margin-top:36px">El equipo</h3>
+    <div class="grid">
+      <div class="card"><div class="photo" style="min-height:140px;margin-top:0">Foto Karen</div><h3 style="margin-top:12px">Karen Bravo Villarroel</h3>Líder del proyecto y CEO, con dedicación completa. Conduce la validación comercial y el piloto.</div>
+      <div class="card"><div class="photo" style="min-height:140px;margin-top:0">Foto Paulo</div><h3 style="margin-top:12px">Paulo Correa Vargas</h3>Cofundador, CPO y líder técnico. Docente de Animación Digital en la PUCV (2025) y parte del comité que diseñó su currículo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="dark">
+  <div class="wrap" style="text-align:center">
+    <p class="quote" style="border:none;padding:0">En una época de inmediatez, devolvemos a los niños el tiempo de crear.</p>
+    <p class="label">Prueba el prototipo</p>
+    <a class="cta" href="https://demo.blackquack.cl">demo.blackquack.cl</a>
+  </div>
+</section>
+
+<footer>BlackQuack Studio · blackquack.cl · Start-Up Chile BUILD 2026</footer>
+</body>
+</html>

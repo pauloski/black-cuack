@@ -245,3 +245,74 @@ footer .foot-meta { color: var(--ink-faint); font-size: .82rem; margin-top: 12px
 @media (max-width: 420px) {
   .gallery { grid-template-columns: 1fr 1fr; }
 }
+
+/* ============================================================
+   Componentes de contenido (fuente: tema-1) con el estilo claro.
+   ============================================================ */
+mark { background: linear-gradient(transparent 58%, var(--yellow) 58%); color: inherit; padding: 0 .04em; }
+.yel { color: var(--amber-ink); }
+
+/* Imagen estática (hero y secciones) */
+.hero-photo { border: 1px solid var(--line); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); rotate: 1.2deg; background: var(--card); }
+.hero-photo img { width: 100%; display: block; }
+.photo { margin-top: 26px; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); background: var(--card); }
+.photo img { width: 100%; display: block; }
+
+/* Cards genéricas + estadísticas */
+.card-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 26px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px; box-shadow: var(--shadow); color: var(--ink-dim); font-size: .95rem; }
+.card h3 { font-size: 1.08rem; margin: 0 0 6px; }
+.card h3.yel { color: var(--amber-ink); }
+.card .big { font-family: 'Bricolage Grotesque','Bricolage Fallback',sans-serif; font-size: clamp(1.8rem,4vw,2.3rem); font-weight: 800; letter-spacing: -.02em; line-height: 1; color: var(--ink); margin-bottom: 8px; }
+.card .big.yel { color: var(--amber-ink); }
+.card.feature-yellow { border-top: 4px solid var(--yellow); }
+.card.stat-hi { background: #FFF7E0; border-color: #F0E2B0; }
+
+/* Lista de funcionalidades */
+.feat-list { columns: 2; column-gap: 32px; margin-top: 18px; padding-left: 18px; }
+.feat-list li { margin-bottom: 10px; break-inside: avoid; color: var(--ink-dim); }
+.feat-list strong { color: var(--ink); }
+
+/* Chip / tag (fases) */
+.chip { display: inline-block; background: #FFF7E0; border: 1px solid #F0E2B0; color: var(--amber-ink); padding: 5px 12px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Cita destacada */
+.quote { border-left: 4px solid var(--yellow); padding: 6px 0 6px 20px; font-family: 'Bricolage Grotesque','Bricolage Fallback',sans-serif; font-weight: 700; font-size: clamp(1.3rem,3vw,1.9rem); line-height: 1.25; color: var(--ink); margin: 34px 0; letter-spacing: -.01em; }
+
+/* Caja destacada */
+.highlight { background: #FFF7E0; border: 1px solid #F0E2B0; border-radius: 20px; padding: 24px; margin-top: 26px; }
+.highlight .cuadro-num { margin-bottom: 8px; }
+
+/* Tabla comparativa / proyección */
+.table-wrap { overflow-x: auto; margin-top: 26px; border: 1px solid var(--line); border-radius: 16px; }
+table.cmp { border-collapse: collapse; width: 100%; min-width: 560px; font-size: .95rem; background: var(--card); }
+.cmp th, .cmp td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+.cmp tr:last-child td { border-bottom: 0; }
+.cmp th { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+.cmp .us { background: #FFF7E0; font-weight: 600; color: var(--ink); }
+.cmp .ok { color: var(--green-ink); font-weight: 800; }
+.cmp .no { color: #C2410C; font-weight: 800; }
+
+/* Planes */
+.plans { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 28px; }
+.plan { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); position: relative; }
+.plan.free { border: 2px solid var(--green); }
+.plan.star { background: #FFF7E0; border: 2px solid var(--yellow); }
+.plan-badge { display: inline-block; border-radius: 999px; padding: 4px 12px; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: var(--paper-2); color: var(--ink-dim); }
+.plan.free .plan-badge { background: var(--green); color: #fff; }
+.plan.star .plan-badge { background: #FF5A3C; color: #fff; }
+.plan h3 { margin: 14px 0 2px; font-size: 1.12rem; }
+.price { font-family: 'Bricolage Grotesque','Bricolage Fallback',sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; margin: 6px 0 2px; color: var(--ink); }
+.price small { font-size: .8rem; font-weight: 400; color: var(--ink-faint); }
+.plan ul { padding-left: 18px; font-size: .92rem; color: var(--ink-dim); margin: 12px 0 0; }
+.plan li { margin-bottom: 6px; }
+.fine { color: var(--ink-faint); font-size: .82rem; margin-top: 18px; }
+
+/* CTA final centrado */
+.cta-final { text-align: center; }
+.cta-final .quote { border: none; padding: 0; max-width: 20ch; margin: 0 auto 20px; }
+.cta-big { font-family: 'Bricolage Grotesque','Bricolage Fallback',sans-serif; font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; color: var(--amber-ink); text-decoration: none; }
+
+@media (max-width: 880px) {
+  .feat-list { columns: 1; }
+}

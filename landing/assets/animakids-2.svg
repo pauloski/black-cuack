@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Taller Animakids 2">
+  <rect width="100%" height="100%" fill="#EFEBE3"/>
+  <rect x="10" y="10" width="780" height="580" fill="none" stroke="#D8D1C2" stroke-width="2" stroke-dasharray="10 8"/>
+  <circle cx="400" cy="216" r="42" fill="none" stroke="#5CB85C" stroke-width="4"/>
+  <path d="M379 195 l42 21 l-42 21 z" fill="#5CB85C"/>
+  <text x="50%" y="55%" fill="#8A8578" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="600" text-anchor="middle">Taller Animakids 2</text>
+</svg>
