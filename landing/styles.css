@@ -1,0 +1,246 @@
+/* ============================================================
+   BlackQuack Studio — landing. Estética stop-motion: todo el
+   movimiento a 12 fps con steps(), como hecho a mano.
+   ============================================================ */
+:root {
+  --bg: #0E0E0E;
+  --bg-2: #141414;
+  --surface: #1A1A1A;
+  --yellow: #F4B942;
+  --purple: #B98AF0;
+  --green: #5CB85C;
+  --orange: #FF8A3D;
+  --ink: #F3F1EC;
+  --ink-dim: #A7A39B;
+  --ink-faint: #6b6760;
+  --line: #2a2a2a;
+  --fps: 0.0833s; /* 1 cuadro a 12 fps */
+  --maxw: 1080px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fredoka', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.6;
+  /* Textura sutil de papel */
+  background-image:
+    radial-gradient(rgba(255,255,255,0.016) 1px, transparent 1px);
+  background-size: 4px 4px;
+  overflow-x: hidden;
+}
+h1, h2, h3 { font-weight: 600; line-height: 1.1; margin: 0 0 .5em; }
+p { margin: 0 0 1em; color: var(--ink-dim); }
+a { color: var(--yellow); }
+img { max-width: 100%; display: block; }
+
+.skip-link {
+  position: absolute; left: -999px; top: 0; z-index: 100;
+  background: var(--yellow); color: #000; padding: 10px 16px; border-radius: 0 0 12px 0;
+  font-weight: 600;
+}
+.skip-link:focus { left: 0; }
+
+:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+/* ---------- Tira de fotogramas (separador) ---------- */
+.filmstrip {
+  height: 28px;
+  background:
+    linear-gradient(90deg, var(--line) 0 0) center/100% 2px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 14px, var(--bg-2) 14px 26px);
+  border-top: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+  position: relative;
+}
+.filmstrip::before, .filmstrip::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 6px;
+  background: repeating-linear-gradient(90deg, var(--ink-faint) 0 6px, transparent 6px 20px);
+  opacity: .5;
+}
+.filmstrip::before { top: 3px; }
+.filmstrip::after { bottom: 3px; }
+
+/* ---------- Secciones numeradas ---------- */
+.cuadro { padding: 72px 0; position: relative; }
+.cuadro-num {
+  display: inline-block;
+  font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--yellow); border: 2px solid var(--line);
+  padding: 4px 12px; border-radius: 999px; margin-bottom: 20px;
+}
+.cuadro h2 { font-size: clamp(1.6rem, 4.5vw, 2.6rem); color: var(--ink); }
+.lead { font-size: clamp(1rem, 2.4vw, 1.2rem); color: var(--ink-dim); max-width: 44ch; }
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: inherit; font-weight: 600; font-size: 1rem;
+  padding: 14px 24px; border-radius: 16px; border: 2px solid transparent;
+  text-decoration: none; cursor: pointer; transition: transform var(--fps) steps(1);
+}
+.btn:hover { transform: translateY(-3px) rotate(-1deg); }
+.btn-primary { background: var(--yellow); color: #000; box-shadow: 0 6px 0 #a87d1e; }
+.btn-primary:hover { box-shadow: 0 9px 0 #a87d1e; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+
+/* ---------- Cuadro 01: portada / flipbook ---------- */
+.hero { padding-top: 40px; }
+.hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
+.hero-logo { height: 54px; width: auto; margin-bottom: 24px; }
+.hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); }
+.hero .lead { max-width: 40ch; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 14px; margin: 26px 0 14px; }
+.hero-note { font-size: .82rem; color: var(--ink-faint); }
+
+.flipbook {
+  position: relative; aspect-ratio: 9/11; width: 100%;
+  background: var(--surface); border: 3px solid var(--line); border-radius: 18px;
+  overflow: hidden; box-shadow: 10px 10px 0 rgba(0,0,0,.35);
+}
+.flipbook .fb-frame {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0;
+}
+.flipbook .fb-frame.is-active { opacity: 1; }
+.flipbook .fb-hint {
+  position: absolute; left: 0; right: 0; bottom: 10px; text-align: center;
+  font-size: .72rem; letter-spacing: .15em; text-transform: uppercase; color: var(--ink-faint);
+}
+
+/* ---------- Cuadro 02: manifiesto ---------- */
+.manifesto { text-align: center; }
+.manifesto-quote {
+  font-size: clamp(1.8rem, 6vw, 4rem); font-weight: 600; color: var(--ink);
+  max-width: 18ch; margin: 0 auto; line-height: 1.12;
+}
+.manifesto-quote .w { display: inline-block; opacity: 0; transform: translateY(10px); }
+.manifesto-quote.reveal .w { opacity: 1; transform: none; }
+
+/* ---------- Cuadro 03: iniciativa ---------- */
+.pills { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 26px; }
+.pill {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 14px;
+  padding: 12px 18px; font-weight: 600; color: var(--ink);
+}
+.pill .dot { width: 12px; height: 12px; border-radius: 50%; }
+
+/* ---------- Cuadro 04: video ---------- */
+.video-frame {
+  position: relative; aspect-ratio: 16/9; border: 3px solid var(--line);
+  border-radius: 18px; overflow: hidden; background: #000; cursor: pointer;
+}
+.video-frame img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-play {
+  position: absolute; inset: 0; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer;
+}
+.video-play span {
+  width: 84px; height: 84px; border-radius: 50%; background: var(--yellow); color: #000;
+  display: grid; place-items: center; font-size: 34px; box-shadow: 0 6px 0 #a87d1e;
+}
+
+/* ---------- Cuadro 05: cómo funciona ---------- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.step { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; overflow: hidden; }
+.step h3 { font-size: 1.1rem; margin: 16px 16px 6px; color: var(--yellow); }
+.step p { font-size: .92rem; margin: 0 16px 18px; }
+.step .num { font-size: .78rem; color: var(--ink-faint); margin: 14px 16px 0; letter-spacing: .1em; }
+
+.guide {
+  margin-top: 34px; background: var(--bg-2); border: 2px dashed var(--line);
+  border-radius: 16px; padding: 22px;
+}
+.guide h3 { color: var(--ink); font-size: 1.1rem; }
+.guide ol { margin: 10px 0 18px; padding-left: 20px; color: var(--ink-dim); }
+
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 34px; }
+.panel { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 22px; }
+.panel.now { border-color: rgba(92,184,92,.5); }
+.panel.build { border-color: rgba(185,138,240,.5); }
+.panel h3 { font-size: 1rem; }
+.panel.now h3 { color: var(--green); }
+.panel.build h3 { color: var(--purple); }
+.panel ul { margin: 10px 0 0; padding-left: 18px; color: var(--ink-dim); font-size: .92rem; }
+.panel li { margin-bottom: 6px; }
+
+/* ---------- Onion skin (hover/focus) ---------- */
+.onion { position: relative; border-radius: 12px; overflow: hidden; }
+.onion .ghost {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; pointer-events: none;
+}
+.onion:hover .g1, .onion:focus-within .g1 { opacity: .35; transform: translate(-10px, 6px); }
+.onion:hover .g2, .onion:focus-within .g2 { opacity: .2; transform: translate(-20px, 12px); }
+.onion .ghost, .onion .main { transition: transform var(--fps) steps(2), opacity var(--fps) steps(2); }
+
+/* ---------- Cuadro 06: equipo ---------- */
+.team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.member { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 22px; text-align: center; }
+.member img { width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 14px; border: 3px solid var(--line); object-fit: cover; }
+.member h3 { font-size: 1.05rem; color: var(--ink); }
+.member .role { color: var(--yellow); font-size: .85rem; font-weight: 600; margin-bottom: 10px; }
+.member ul { text-align: left; padding-left: 18px; font-size: .85rem; color: var(--ink-dim); margin: 0; }
+.member li { margin-bottom: 5px; }
+.team-note { text-align: center; color: var(--ink-faint); margin-top: 18px; }
+
+/* ---------- Cuadro 07: Animakids ---------- */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 26px; }
+.gallery .onion { aspect-ratio: 4/3; }
+.gallery img { width: 100%; height: 100%; object-fit: cover; }
+.tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.tag { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: .82rem; color: var(--ink-dim); }
+
+/* ---------- Cuadro 08: colaboración ---------- */
+.collab { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.collab .panel img { height: 48px; width: auto; margin-bottom: 14px; filter: grayscale(1) opacity(.85); }
+.collab .sub { font-size: .9rem; }
+.collab .feature { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: .88rem; color: var(--ink-dim); }
+.collab .feature .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--purple); margin-top: 7px; flex: none; }
+.note-small { font-size: .78rem; color: var(--ink-faint); margin-top: 16px; }
+
+/* ---------- Pie ---------- */
+footer { border-top: 2px solid var(--line); padding: 48px 0; text-align: center; }
+footer .slogan { font-size: 1.3rem; color: var(--yellow); font-weight: 600; margin: 14px 0; }
+footer a { color: var(--ink-dim); }
+footer .foot-meta { color: var(--ink-faint); font-size: .82rem; margin-top: 10px; }
+
+/* ---------- 12 fps: animaciones por fotogramas ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wiggle { 0%{transform:rotate(-2deg)} 50%{transform:rotate(2deg)} 100%{transform:rotate(-2deg)} }
+  .hero-logo { animation: wiggle 1s steps(4) infinite; transform-origin: left center; }
+  @keyframes blink { 0%,60%{opacity:1} 61%,100%{opacity:.25} }
+  .cuadro-num { animation: blink 1.5s steps(1) infinite; }
+  .manifesto-quote .w { transition: opacity var(--fps) steps(1), transform var(--fps) steps(1); }
+}
+
+/* ---------- Respeta prefers-reduced-motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation: none !important; transition: none !important; }
+  .manifesto-quote .w { opacity: 1; transform: none; }
+  .flipbook .fb-frame { opacity: 0; }
+  .flipbook .fb-frame.is-active { opacity: 1; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  body { font-size: 17px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+  .flipbook { max-width: 360px; margin: 0 auto; }
+  .steps, .team { grid-template-columns: 1fr; }
+  .cols2, .collab { grid-template-columns: 1fr; }
+  .gallery { grid-template-columns: repeat(2, 1fr); }
+  .cuadro { padding: 56px 0; }
+}
+@media (max-width: 420px) {
+  .gallery { grid-template-columns: 1fr 1fr; }
+  .hero-cta { gap: 10px; }
+}

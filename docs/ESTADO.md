@@ -2,6 +2,15 @@
 
 Fecha de corte: **2026-11-21** (maratón). Rama de trabajo: `demo/semana-1`. Objetivo (CLAUDE.md §8): **demo del MVP** en `demo.blackquack.cl`, local-first, sin exponer datos.
 
+## Landing (postulación BUILD) — `/landing`
+
+Sitio estático independiente de la app (no toca `demo.blackquack.cl`). Estética stop-motion a 12 fps (`steps()`), 8 "cuadros" + pie, `noindex`, Open Graph, accesible (`prefers-reduced-motion`, teclado, contraste).
+
+- **Prod:** https://blackquack-landing.pages.dev · dominio final `build.blackquack.cl` (falta DNS, ver `landing/README.md`).
+- **Deploy:** `./scripts/deploy_landing.sh` (proyecto Pages `blackquack-landing`; genera `version.json` desde `pubspec.yaml`).
+- **Lighthouse móvil:** rendimiento **99**, accesibilidad **96**.
+- **Pendiente del usuario:** DNS de `build.blackquack.cl`; reemplazar imágenes provisorias y `VIDEO_ID` (lista en `landing/README.md`); confirmar `contacto@blackquack.cl`; quitar `noindex` al publicar.
+
 ## Versionado (regla, desde v0.1.0)
 
 - **Arreglos → 0.1.x · Funciones nuevas → 0.2.0** (semántico). La versión vive en una sola fuente: `pubspec.yaml` (`version:`); la app la muestra vía `package_info_plus` (`lib/src/core/config/app_info.dart`) en Ajustes y en el overlay `?debug=1`.
