@@ -16,7 +16,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this);
-    Future.delayed(const Duration(seconds: 5), _goToLogin);
+    Future.delayed(const Duration(seconds: 2), _goToLogin);
   }
 
   void _goToLogin() {
