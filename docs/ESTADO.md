@@ -187,7 +187,10 @@ Leyenda: ✅ hecho · ⚠️ parcial · ❌ falta · 🤖 solo cumplible en **na
 - ✅ Cada cuadro se guarda al instante en el dispositivo; en modo avión no se pierde (compresión al capturar → repo local).
 - ✅ Reabre en el último cuadro tras un cierre (borrador auto-persistido; reabrible desde "Mis proyectos"). *(en preview)*
 
-**HDU2 · Orientación vertical/horizontal** — ❌ Falta todo (elección por proyecto, respeto en cámara/timeline, export). Cross-platform.
+**HDU2 · Orientación vertical/horizontal**
+- ⚠️ Elección por proyecto (9:16 / 16:9): ✅ existe (`_aspect`).
+- ✅ Respeto en cámara: **nativo** fuerza el giro con `SystemChrome` (16:9→horizontal, 9:16→vertical, sin depender del autogiro); **PWA** desbloqueada (`manifest.json` orientation `any`); **web** best-effort + aviso "gira el teléfono". Visor a **pantalla completa** con marco de recorte atenuado (vista previa y papel cebolla calzan). *(2026-11-23)*
+- ❌ Falta: respeto en timeline y export, 720p/marca de agua.
 
 **HDU3 · Línea de tiempo y FPS**
 - ⚠️ Reordenar / duplicar / borrar con deshacer: borrar ✅ y deshacer-última-captura ✅; **reordenar, duplicar y deshacer-borrado faltan** (→ T7).
@@ -200,7 +203,9 @@ Leyenda: ✅ hecho · ⚠️ parcial · ❌ falta · 🤖 solo cumplible en **na
 - ⚠️ Sin ubicación ni metadatos: los cuadros se **recodifican a JPEG** (descarta EXIF), pero no está verificado explícitamente para geolocalización.
 - ❌ En aula, exportar fuera de la app lo habilita el docente (capa de aula).
 
-**HDU5 · Versiones firmadas por autor** — ❌ Falta la función (guardar versión, historial, restaurar, autor/origen, ejercicios). **Base lista:** el repositorio **ya comparte cuadros entre proyectos/versiones sin duplicar** (→ T9).
+**HDU5 · Versiones firmadas por autor**
+- ✅ Guardar versión **con nombre**, historial, **restaurar**, **duplicar** y **renombrar**; cuadros compartidos sin duplicar. **"Versión de inicio"** automática (solo el primer cuadro) como punto de partida para el flujo de grupo. *(2026-11-23)*
+- ❌ Falta: autoría ligada a perfil (hoy `artistName` libre), origen clase/casa, ejercicios de práctica (→ HDU9).
 
 ## Pendientes
 
@@ -212,4 +217,12 @@ Leyenda: ✅ hecho · ⚠️ parcial · ❌ falta · 🤖 solo cumplible en **na
 ## 4. Bitácora
 
 - **2026-11-20** — Reorientación a herramienta de aula. Auditoría git (trabajo ya protegido en `wip`; docs consolidados en `main`), creada `demo/semana-1`. Verificada la tabla de HDU contra el código y corregidas HDU4 y HDU13 en `docs/HISTORIAS_DE_USUARIO.md`. Diagnóstico de exportación, miniaturas y modo invitado con archivo:línea. Plan de la semana aprobado. Creados `docs/decisiones/0001-modo-local-demo.md` y `scripts/deploy_demo.sh` (pendiente T0).
+- **2026-11-23** — **Rediseño del editor de cámara + versiones con nombre (HDU2/3/5).** Sesión larga de UX validada en PWA Android. Cambios:
+  - **HDU2 · Orientación nativa.** El control estaba todo tras `kIsWeb`: en la APK/PWA nada forzaba ni detectaba el giro y el stub nativo (`screen_lock_stub.dart`) era no-op. Reimplementado con `SystemChrome` para **forzar** la rotación según el aspecto (16:9→horizontal, 9:16→vertical) + immersiveSticky; `_maybeEnterImmersive` corre también en nativo. **PWA:** `web/manifest.json` tenía `orientation: portrait-primary`, que bloqueaba la app instalada en vertical → cambiado a `any`.
+  - **HDU2 · Visor a pantalla completa.** El `CameraViewer` ahora llena el visor con la cámara completa y un **atenuado** marca el recorte del proyecto (lo que se captura). Vista previa y papel cebolla comparten el mismo marco para que **calcen** (clave del stop motion). En horizontal ultra-wide queda algún margen por fidelidad del marco (decisión de producto).
+  - **HDU3 · Bug de reproducción.** Tras play→stop el visor quedaba **congelado** en web: la reproducción reemplazaba el árbol y desmontaba el `CameraPreview`. Ahora la reproducción es una **capa encima**; el preview no se desmonta. Resuelto.
+  - **HDU3 · Controles flotantes + timeline colapsable.** Barra superior → esquinas flotantes (X · ⚙️); las acciones (Guardar, renombrar, deshacer, versiones, exportar) viven en una **hoja del ⚙️** (desplazable, para que no se corte en horizontal). Timeline flota sobre el visor, se expande/contrae con un tirador, contenedor negro ~opaco, thumbnails con la forma del proyecto. Slider vertical visible de opacidad del papel cebolla.
+  - **HDU5 · Versiones con nombre.** `saveVersion` pide **nombre**; se crea sola una **"Versión de inicio"** con **solo el primer cuadro** al capturarlo (punto de partida para el flujo de grupo); **renombrar/duplicar** por versión; `copyWith` en el modelo. Al descartar un proyecto se borran también sus versiones (sin huérfanos).
+  - **Marca.** Unificado **BlackQuack** en PWA (`manifest.json`), Android (`android:label`), iOS (`CFBundleDisplayName`) y app (`main.dart` title, texto de compartir).
+  - Pendiente: prueba en APK física; decidir si se elimina del todo el concepto interno `isDraft` (hoy solo se quitó la palabra "borrador" de la interfaz).
 - **2026-11-20/21** — T0 cerrado (demo en producción con interfaz final de `wip` + GIF web + íconos completos). Merge `wip`→`demo/semana-1` con IGNITE tras flag. **Bloque A (T2a) completo y en producción**: repositorio local-first (Hive), compresión al capturar, ciclo personal sin Firebase, banner de almacén efímero, gate `hasCloudAccount`. **En preview pendiente de prueba (Android):** borrador HDU1 (`isDraft`) + `?debug`. Auditoría HDU1–5 arriba. **Próximo:** Bloque B (T2b: login sin email, timeout del anónimo, doc offline).
