@@ -74,6 +74,11 @@ class _CameraPageState extends State<CameraPage> {
   double fps = 12.0;
   bool showGrid = false;
   bool isPlaying = false;
+  // Timeline colapsable que flota sobre el visor (se expande/contrae con el tirador).
+  bool _timelineExpanded = true;
+  // La "Versión de inicio" (solo el primer cuadro) se crea sola una vez. Evita
+  // recrearla en cada captura.
+  bool _inicioEnsured = false;
   int previewIndex = 0;
   int? selectedIndex;
   bool _isExporting = false;
@@ -147,6 +152,9 @@ class _CameraPageState extends State<CameraPage> {
         if (capturedPhotos.isNotEmpty) lastCapturedPhoto = capturedPhotos.last;
       });
     }
+    // Proyecto reabierto sin "Inicio" (anterior a esta función): lo crea desde
+    // el primer cuadro local.
+    await _ensureInicioVersion();
   }
 
   Future<void> _initCamera() async {
@@ -191,11 +199,14 @@ class _CameraPageState extends State<CameraPage> {
   Orientation get _requiredOrientation =>
       _aspect == '16:9' ? Orientation.landscape : Orientation.portrait;
 
-  /// Una sola vez (solo web/teléfono): pide pantalla completa y bloquea la
-  /// orientación del proyecto. Best-effort: si el navegador lo rechaza, el aviso
-  /// de "gira el teléfono" cubre el caso.
+  /// Una sola vez (teléfono, web y nativo): entra a pantalla completa y bloquea
+  /// la orientación del proyecto.
+  /// - En nativo, lockOrientation FUERZA el giro (16:9 → horizontal, 9:16 →
+  ///   vertical) con SystemChrome, sin depender del autogiro del sistema.
+  /// - En web es best-effort: si el navegador lo rechaza, el aviso de "gira el
+  ///   teléfono" cubre el caso.
   void _maybeEnterImmersive(bool isPhone) {
-    if (_immersiveTried || !kIsWeb || !isPhone) return;
+    if (_immersiveTried || !isPhone) return;
     _immersiveTried = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await enterFullscreen();
@@ -250,6 +261,7 @@ class _CameraPageState extends State<CameraPage> {
       if (idx != -1 && idx < _frameIds.length) {
         _frameIds[idx] = id;
         await _persistDraft(); // borrador incremental (HDU1)
+        await _ensureInicioVersion(); // respaldo "Inicio" con el primer cuadro
       }
       // Si el cuadro se borró antes de comprimirse, queda huérfano y lo limpia
       // pruneOrphanFrames (>24h) en el próximo arranque.
@@ -272,10 +284,10 @@ class _CameraPageState extends State<CameraPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('¿GUARDAR BORRADOR?',
+        title: const Text('¿GUARDAR ANTES DE SALIR?',
             style: TextStyle(fontFamily: 'Lexend', color: Color(0xFFFFB800), fontSize: 16)),
         content: const Text(
-          'Tienes cuadros sin guardar. Puedes guardarlos como borrador para seguir luego, o descartarlos.',
+          'Tienes cuadros sin guardar. Puedes guardarlos para seguir luego, o descartarlos.',
           style: TextStyle(color: Colors.white54, fontFamily: 'Lexend', fontSize: 13),
         ),
         actions: [
@@ -286,7 +298,7 @@ class _CameraPageState extends State<CameraPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFB800)),
             onPressed: () => Navigator.pop(ctx, 'borrador'),
-            child: const Text('GUARDAR BORRADOR', style: TextStyle(color: Colors.black)),
+            child: const Text('GUARDAR', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),
@@ -294,6 +306,12 @@ class _CameraPageState extends State<CameraPage> {
     if (choice == null) return; // cancelar: quedarse
     if (choice == 'descartar') {
       await _compressQueue; // evita que una compresión en curso recree el borrador
+      // Borra también las versiones (incl. "Inicio" automática) para no dejar
+      // registros ni cuadros huérfanos al descartar.
+      final versions = await listVersions(projectRepository, _projectId);
+      for (final v in versions) {
+        await projectRepository.deleteProject(v.id);
+      }
       await projectRepository.deleteProject(_projectId);
     } else {
       await _compressQueue;
@@ -412,12 +430,90 @@ class _CameraPageState extends State<CameraPage> {
       _showSnack('Captura algunos cuadros primero', AppColors.danger);
       return;
     }
+    // Cuenta las versiones del usuario (excluye "Inicio", que es el respaldo
+    // automático del primer cuadro) para sugerir el número.
+    final existing = await listVersions(projectRepository, _projectId);
+    if (!mounted) return;
+    final userVersions = existing.where((v) => v.name != 'Inicio').length;
+    final suggested = 'Versión ${userVersions + 1}';
+    final name = await _promptName(
+        title: 'NOMBRE DE LA VERSIÓN', initial: suggested);
+    if (name == null) return; // cancelado
+    final author = widget.projectToLoad?.artistName ?? '';
     await saveVersion(projectRepository,
         parentId: _projectId,
         frameIds: ids,
-        author: widget.projectToLoad?.artistName ?? '',
-        aspect: _aspect);
+        author: author,
+        aspect: _aspect,
+        name: name.trim().isEmpty ? suggested : name.trim());
     if (mounted) _showSnack('Versión guardada 📑', AppColors.secondary);
+  }
+
+  /// Crea una sola vez la "Versión de inicio" automática: **solo el primer
+  /// cuadro** del proyecto, como punto de partida/respaldo desde el que un grupo
+  /// ramifica. Se llama al capturar/hidratar el primer cuadro; no-op si ya existe.
+  Future<void> _ensureInicioVersion() async {
+    if (_inicioEnsured) return;
+    final ids = _frameIds.whereType<String>().toList();
+    if (ids.isEmpty) return;
+    final existing = await listVersions(projectRepository, _projectId);
+    if (existing.any((v) => v.name == 'Inicio')) {
+      _inicioEnsured = true;
+      return;
+    }
+    await saveVersion(projectRepository,
+        parentId: _projectId,
+        frameIds: [ids.first], // punto de inicio = primer cuadro
+        author: widget.projectToLoad?.artistName ?? '',
+        aspect: _aspect,
+        name: 'Inicio');
+    _inicioEnsured = true;
+  }
+
+  /// Diálogo simple para pedir un nombre. Devuelve null si se cancela.
+  Future<String?> _promptName(
+      {required String title, String initial = ''}) async {
+    final controller = TextEditingController(text: initial);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: Text(title,
+            style: const TextStyle(
+                fontFamily: 'Lexend', color: AppColors.primary, fontSize: 15)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Nombre',
+            hintStyle: const TextStyle(color: Colors.white24),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCELAR')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('OK', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Renombra una versión existente (mismo id → upsert).
+  Future<void> _renameVersion(QuackProject v) async {
+    final name =
+        await _promptName(title: 'RENOMBRAR VERSIÓN', initial: v.name);
+    if (name == null || name.trim().isEmpty) return;
+    await projectRepository.saveProject(v.copyWith(name: name.trim()));
+    if (mounted) _showSnack('Versión renombrada', AppColors.secondary);
   }
 
   Future<void> _restoreVersion(QuackProject version) async {
@@ -443,7 +539,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   void _showVersions() async {
-    final versions = await listVersions(projectRepository, _projectId);
+    var versions = await listVersions(projectRepository, _projectId);
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -452,70 +548,103 @@ class _CameraPageState extends State<CameraPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SingleChildScrollView(
-        child: Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('HISTORIAL DE VERSIONES',
-                style: TextStyle(
-                    color: AppColors.primary, fontFamily: 'Lexend', fontSize: 16)),
-            const SizedBox(height: 16),
-            if (versions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('Aún no hay versiones. Toca "Guardar versión".',
-                    style: TextStyle(color: Colors.white38, fontSize: 13)),
-              )
-            else
-              ...versions.map((v) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.bookmark_rounded,
-                        color: AppColors.secondary),
-                    title: Text(
-                        '${v.date.day}/${v.date.month} ${v.date.hour}:${v.date.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                            color: Colors.white, fontFamily: 'Lexend', fontSize: 13)),
-                    subtitle: Text('${v.photoPaths.length} cuadros',
-                        style: const TextStyle(
-                            color: Colors.white38, fontSize: 11)),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _restoreVersion(v);
-                          },
-                          child: const Text('RESTAURAR',
-                              style: TextStyle(
-                                  color: AppColors.primary, fontSize: 11)),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.copy_rounded,
-                              color: Colors.white54, size: 18),
-                          tooltip: 'Duplicar versión',
-                          onPressed: () async {
-                            Navigator.pop(ctx);
-                            await saveVersion(projectRepository,
-                                parentId: _projectId,
-                                frameIds: v.photoPaths,
-                                author: v.artistName,
-                                aspect: _aspect);
-                            if (mounted) {
-                              _showSnack('Versión duplicada', AppColors.secondary);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  )),
-          ],
-        ),
-        ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> reload() async {
+            final v = await listVersions(projectRepository, _projectId);
+            if (mounted) setSheet(() => versions = v);
+          }
+          return SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('HISTORIAL DE VERSIONES',
+                      style: TextStyle(
+                          color: AppColors.primary,
+                          fontFamily: 'Lexend',
+                          fontSize: 16)),
+                  const SizedBox(height: 16),
+                  if (versions.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                          'Aún no hay versiones. Toca "Guardar versión".',
+                          style:
+                              TextStyle(color: Colors.white38, fontSize: 13)),
+                    )
+                  else
+                    ...versions.map((v) => _versionTile(ctx, v, reload)),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _versionTile(
+      BuildContext ctx, QuackProject v, Future<void> Function() reload) {
+    final isInicio = v.name == 'Inicio';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(isInicio ? Icons.flag_rounded : Icons.bookmark_rounded,
+          color: isInicio ? AppColors.primary : AppColors.secondary),
+      title: Text(v.name,
+          style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'Lexend',
+              fontSize: 14,
+              fontWeight: FontWeight.w600)),
+      subtitle: Text(
+          '${v.photoPaths.length} cuadros · ${v.date.day}/${v.date.month} ${v.date.hour}:${v.date.minute.toString().padLeft(2, '0')}',
+          style: const TextStyle(color: Colors.white38, fontSize: 11)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _restoreVersion(v);
+            },
+            child: const Text('RESTAURAR',
+                style: TextStyle(color: AppColors.primary, fontSize: 11)),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded,
+                color: Colors.white54, size: 18),
+            color: const Color(0xFF222222),
+            onSelected: (s) async {
+              if (s == 'rename') {
+                await _renameVersion(v);
+                await reload();
+              } else if (s == 'dup') {
+                await saveVersion(projectRepository,
+                    parentId: _projectId,
+                    frameIds: v.photoPaths,
+                    author: v.artistName,
+                    aspect: _aspect,
+                    name: '${v.name} (copia)');
+                if (mounted) _showSnack('Versión duplicada', AppColors.secondary);
+                await reload();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                  value: 'rename',
+                  child: Text('Renombrar',
+                      style: TextStyle(color: Colors.white))),
+              PopupMenuItem(
+                  value: 'dup',
+                  child:
+                      Text('Duplicar', style: TextStyle(color: Colors.white))),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -878,7 +1007,7 @@ class _CameraPageState extends State<CameraPage> {
         _showSnack('Archivo guardado en tu carpeta de Descargas', AppColors.primary);
       } else {
         await SharePlus.instance.share(
-          ShareParams(files: [XFile(result)], text: '¡Mi animación Blackcuack!'),
+          ShareParams(files: [XFile(result)], text: '¡Mi animación BlackQuack!'),
         );
       }
     } catch (e) {
@@ -1063,8 +1192,6 @@ class _CameraPageState extends State<CameraPage> {
       return _buildRotateOverlay(_requiredOrientation);
     }
 
-    if (isPlaying) return _buildCinemaMode();
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -1075,23 +1202,28 @@ class _CameraPageState extends State<CameraPage> {
       children: [
         Scaffold(
           backgroundColor: Colors.black,
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildTopBar(),
-                Expanded(child: _buildCameraArea()),
-                CameraTimeline(
-                  capturedPhotos: capturedPhotos,
-                  selectedIndex: selectedIndex,
-                  onPhotoTap: (i) => setState(() => selectedIndex = i),
-                  onReorder: _reorderFrames,
-                  onDuplicate: _duplicateFrame,
-                  onDelete: _deleteFrameWithUndo,
-                ),
-              ],
-            ),
+          // Visor a pantalla completa; barra y timeline flotan encima con opacidad.
+          body: Stack(
+            children: [
+              Positioned.fill(child: _buildCameraArea()),
+              // Controles superiores flotantes en las esquinas (X · Guardar · ⚙️).
+              // Sin franja: el marco queda despejado.
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: SafeArea(bottom: false, child: _buildTopBar()),
+              ),
+              // Timeline colapsable flotante.
+              Positioned(
+                bottom: 0, left: 0, right: 0,
+                child: SafeArea(top: false, child: _buildTimelineOverlay()),
+              ),
+            ],
           ),
         ),
+        // Reproducción: capa ENCIMA del editor, no un Scaffold aparte. Así el
+        // CameraPreview nunca se desmonta y al detener sigue en vivo (si se
+        // desmontara, en web la textura de video queda congelada). HDU3.
+        if (isPlaying) Positioned.fill(child: _buildCinemaMode()),
         if (_isExporting) _buildExportOverlay(),
         if (kShowDebugOverlay)
           Positioned(
@@ -1121,165 +1253,148 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildTopBar() {
-    // En pantallas angostas, los secundarios (versión, historial, exportar) van a
-    // un menú ⋯ para que no se superpongan con el título. Quedan Deshacer y Guardar.
-    final compact = MediaQuery.of(context).size.width < 480;
-
-    final undoBtn = IconButton(
-      icon: Icon(Icons.undo_rounded,
-          color: _undo.isNotEmpty ? Colors.white60 : Colors.white24, size: 22),
-      onPressed: _undo.isNotEmpty ? _handleUndo : null,
-      tooltip: 'Deshacer',
-    );
-
-    final versionBtn = IconButton(
-      icon: Icon(Icons.bookmark_add_outlined,
-          color: hasPhotos ? AppColors.secondary : Colors.white24, size: 20),
-      onPressed: hasPhotos ? _saveVersion : null,
-      tooltip: 'Guardar versión',
-    );
-    final historyBtn = IconButton(
-      icon: const Icon(Icons.history_rounded, color: Colors.white60, size: 20),
-      onPressed: _showVersions,
-      tooltip: 'Versiones',
-    );
-    final exportBtn = IconButton(
-      icon: Icon(Icons.ios_share,
-          color: hasPhotos ? Colors.white60 : Colors.white24, size: 20),
-      onPressed: hasPhotos ? _exportVideo : null,
-      tooltip: 'Exportar',
-    );
-
-    final guardarPill = GestureDetector(
-      onTap: hasPhotos ? _handleSaveAction : null,
-      child: Opacity(
-        opacity: hasPhotos ? 1 : 0.4,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.save_rounded, color: Colors.black, size: 16),
-              SizedBox(width: 5),
-              Text('Guardar',
-                  style: TextStyle(
-                      fontFamily: 'Lexend',
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    final List<Widget> actions = compact
-        ? [
-            undoBtn,
-            _buildOverflowMenu(),
-            const SizedBox(width: 2),
-            guardarPill,
-          ]
-        : [
-            versionBtn,
-            historyBtn,
-            undoBtn,
-            if (kEnableIgniteFeatures)
-              IconButton(
-                icon: Icon(Icons.auto_fix_high_rounded,
-                    color: hasPhotos ? AppColors.secondary : Colors.white24,
-                    size: 20),
-                onPressed: hasPhotos ? _openEraseTool : null,
-                tooltip: 'Borrar soporte',
-              ),
-            exportBtn,
-            const SizedBox(width: 4),
-            guardarPill,
-          ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      color: Colors.black,
+    // Solo esquinas flotantes: cerrar · Guardar · ⚙️ (el resto va en la hoja).
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 22),
-            onPressed: () => _handleBackExit(Navigator.of(context)),
+          _PanelBtn(
+            icon: Icons.close_rounded,
+            size: 44,
+            onTap: () => _handleBackExit(Navigator.of(context)),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: _renameTitle,
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(_title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white, fontFamily: 'Lexend',
-                          fontWeight: FontWeight.w600, fontSize: 15,
-                        )),
-                  ),
-                  const SizedBox(width: 5),
-                  const Icon(Icons.edit_outlined,
-                      color: Colors.white38, size: 14),
-                ],
-              ),
-            ),
+          const Spacer(),
+          _PanelBtn(
+            icon: Icons.settings_rounded,
+            size: 44,
+            onTap: _showProjectMenu,
           ),
-          ...actions,
-          const SizedBox(width: 6),
         ],
       ),
     );
   }
 
-  /// Menú ⋯ para pantallas angostas: versión, historial y exportar.
-  Widget _buildOverflowMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: Colors.white70, size: 22),
-      color: const Color(0xFF1A1A1A),
-      tooltip: 'Más',
-      onSelected: (v) {
-        switch (v) {
-          case 'version':
-            if (hasPhotos) _saveVersion();
-            break;
-          case 'history':
-            _showVersions();
-            break;
-          case 'export':
-            if (hasPhotos) _exportVideo();
-            break;
-          case 'erase':
-            if (hasPhotos) _openEraseTool();
-            break;
-        }
-      },
-      itemBuilder: (_) => [
-        const PopupMenuItem(
-          value: 'version',
-          child: _MenuRow(icon: Icons.bookmark_add_outlined, label: 'Guardar versión'),
-        ),
-        const PopupMenuItem(
-          value: 'history',
-          child: _MenuRow(icon: Icons.history_rounded, label: 'Versiones'),
-        ),
-        const PopupMenuItem(
-          value: 'export',
-          child: _MenuRow(icon: Icons.ios_share, label: 'Exportar'),
-        ),
-        if (kEnableIgniteFeatures)
-          const PopupMenuItem(
-            value: 'erase',
-            child: _MenuRow(icon: Icons.auto_fix_high_rounded, label: 'Borrar soporte'),
+  /// Hoja de acciones del proyecto (bajo el ⚙️): renombrar, deshacer, versión,
+  /// historial, exportar. Mantiene el marco de la cámara despejado.
+  void _showProjectMenu() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (ctx) => SafeArea(
+        // En horizontal el alto útil es poco: se limita y se hace desplazable
+        // para que no se corten los botones de abajo (versiones, exportar…).
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.88,
           ),
-      ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white54,
+                          fontFamily: 'Lexend',
+                          fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Guardar: acción principal, destacada arriba.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: GestureDetector(
+                onTap: hasPhotos
+                    ? () {
+                        Navigator.pop(ctx);
+                        _handleSaveAction();
+                      }
+                    : null,
+                child: Opacity(
+                  opacity: hasPhotos ? 1 : 0.4,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.save_rounded, color: Colors.black, size: 18),
+                        SizedBox(width: 8),
+                        Text('Guardar',
+                            style: TextStyle(
+                                fontFamily: 'Lexend',
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            _projectMenuItem(ctx, Icons.edit_outlined, 'Renombrar', _renameTitle),
+            _projectMenuItem(ctx, Icons.undo_rounded, 'Deshacer',
+                _undo.isNotEmpty ? _handleUndo : null),
+            _projectMenuItem(ctx, Icons.bookmark_add_outlined,
+                'Guardar versión', hasPhotos ? _saveVersion : null),
+            _projectMenuItem(
+                ctx, Icons.history_rounded, 'Ver versiones', _showVersions),
+            _projectMenuItem(ctx, Icons.ios_share, 'Exportar',
+                hasPhotos ? _exportVideo : null),
+            if (kEnableIgniteFeatures)
+              _projectMenuItem(ctx, Icons.auto_fix_high_rounded,
+                  'Borrar soporte', hasPhotos ? _openEraseTool : null),
+            const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _projectMenuItem(
+      BuildContext sheetCtx, IconData icon, String label, VoidCallback? onTap) {
+    final enabled = onTap != null;
+    return ListTile(
+      leading: Icon(icon,
+          color: enabled ? Colors.white70 : Colors.white24, size: 22),
+      title: Text(label,
+          style: TextStyle(
+              color: enabled ? Colors.white : Colors.white24,
+              fontFamily: 'Lexend',
+              fontSize: 14)),
+      onTap: enabled
+          ? () {
+              Navigator.pop(sheetCtx);
+              onTap();
+            }
+          : null,
     );
   }
 
@@ -1287,6 +1402,7 @@ class _CameraPageState extends State<CameraPage> {
     return Stack(
       fit: StackFit.expand,
       children: [
+        // Visor a pantalla completa (el marco de recorte lo dibuja el viewer).
         CameraViewer(
           key: _cameraViewerKey,
           controller: controller!,
@@ -1298,41 +1414,81 @@ class _CameraPageState extends State<CameraPage> {
           selectedIndex: selectedIndex,
           capturedPhotos: capturedPhotos,
           projectToLoad: widget.projectToLoad,
+          frameAspect: aspectValue(_aspect),
           onSave: _saveLocally,
         ),
-        // Guía de encuadre según la orientación del proyecto (HDU2).
-        IgnorePointer(
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: aspectValue(_aspect),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35), width: 2),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Positioned(left: 8, top: 16, bottom: 16, child: _buildLeftPanel()),
-        Positioned(right: 8, top: 0, bottom: 0, child: _buildRightPanel()),
-        if (hasPhotos)
-          Positioned(
-            bottom: 10, right: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                '${capturedPhotos.length} frames',
-                style: const TextStyle(
-                  color: Colors.white, fontFamily: 'Lexend', fontSize: 11),
-              ),
-            ),
-          ),
+        // Controles flotantes sobre el visor, centrados verticalmente.
+        Positioned(left: 8, top: 0, bottom: 0,
+            child: Center(child: _buildLeftPanel())),
+        Positioned(right: 8, top: 0, bottom: 0,
+            child: Center(child: _buildRightPanel())),
       ],
+    );
+  }
+
+  /// Timeline que flota sobre el visor y se expande/contrae con el tirador.
+  /// Cuando está contraída deja ver el encuadre completo (el tirador y el
+  /// contador siguen visibles).
+  Widget _buildTimelineOverlay() {
+    final count = capturedPhotos.length;
+    return Container(
+      decoration: BoxDecoration(
+        // Contenedor negro casi opaco: la tira se lee como un bloque sólido
+        // (es colapsable), no como cuadros sueltos sobre la imagen.
+        color: Colors.black.withValues(alpha: 0.85),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Tirador: toca para expandir/contraer.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () =>
+                setState(() => _timelineExpanded = !_timelineExpanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _timelineExpanded
+                        ? Icons.keyboard_arrow_down_rounded
+                        : Icons.keyboard_arrow_up_rounded,
+                    color: Colors.white54, size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    count == 0
+                        ? 'Sin cuadros'
+                        : '$count cuadro${count == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontFamily: 'Lexend',
+                        fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: Alignment.bottomCenter,
+            child: _timelineExpanded
+                ? CameraTimeline(
+                    capturedPhotos: capturedPhotos,
+                    selectedIndex: selectedIndex,
+                    frameAspect: aspectValue(_aspect),
+                    onPhotoTap: (i) => setState(() => selectedIndex = i),
+                    onReorder: _reorderFrames,
+                    onDuplicate: _duplicateFrame,
+                    onDelete: _deleteFrameWithUndo,
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1360,6 +1516,12 @@ class _CameraPageState extends State<CameraPage> {
             ],
           ),
         ),
+        // Manejador visible de opacidad del papel cebolla (como el competidor):
+        // aparece cuando hay capas activas; arrastrar arriba = más opaco.
+        if (_onionLayers > 0) ...[
+          const SizedBox(height: 12),
+          _buildOnionSlider(),
+        ],
         const SizedBox(height: 16),
         _PanelBtn(
           icon: Icons.grid_4x4,
@@ -1368,6 +1530,53 @@ class _CameraPageState extends State<CameraPage> {
           size: 44,
         ),
       ],
+    );
+  }
+
+  /// Slider vertical de opacidad del papel cebolla, en el riel izquierdo.
+  Widget _buildOnionSlider() {
+    return Container(
+      width: 44,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${(onionOpacity * 100).round()}',
+            style: const TextStyle(
+                color: Colors.white54, fontSize: 9, fontFamily: 'Lexend'),
+          ),
+          SizedBox(
+            height: 110,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 12),
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: AppColors.primary,
+                ),
+                child: Slider(
+                  value: onionOpacity,
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (v) => setState(() => onionOpacity = v),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1413,14 +1622,16 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildCinemaMode() {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    // Capa opaca de reproducción (se dibuja sobre el editor, que queda montado).
+    final idx = previewIndex.clamp(0, capturedPhotos.length - 1);
+    return Container(
+      color: Colors.black,
+      child: Stack(
         children: [
           Center(
             child: kIsWeb
-                ? Image.network(capturedPhotos[previewIndex].path)
-                : Image.file(File(capturedPhotos[previewIndex].path)),
+                ? Image.network(capturedPhotos[idx].path)
+                : Image.file(File(capturedPhotos[idx].path)),
           ),
           Positioned(
             bottom: 50, left: 0, right: 0,
@@ -1527,25 +1738,6 @@ class _CameraPageState extends State<CameraPage> {
 }
 
 // ── Fila del menú ⋯ ───────────────────────────────────────────────────────────
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _MenuRow({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70, size: 18),
-        const SizedBox(width: 12),
-        Text(label,
-            style: const TextStyle(
-                color: Colors.white, fontFamily: 'Lexend', fontSize: 13)),
-      ],
-    );
-  }
-}
-
 // ── Reusable panel button ─────────────────────────────────────────────────────
 
 class _PanelBtn extends StatelessWidget {
