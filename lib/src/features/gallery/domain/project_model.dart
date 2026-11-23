@@ -33,6 +33,35 @@ class QuackProject {
     this.ownerProfileId = '',
   });
 
+  QuackProject copyWith({
+    String? name,
+    String? artistName,
+    List<String>? photoPaths,
+    DateTime? date,
+    bool? isPublished,
+    String? workshopCode,
+    String? userId,
+    bool? isDraft,
+    String? aspect,
+    String? parentId,
+    String? ownerProfileId,
+  }) {
+    return QuackProject(
+      id: id,
+      name: name ?? this.name,
+      artistName: artistName ?? this.artistName,
+      photoPaths: photoPaths ?? this.photoPaths,
+      date: date ?? this.date,
+      isPublished: isPublished ?? this.isPublished,
+      workshopCode: workshopCode ?? this.workshopCode,
+      userId: userId ?? this.userId,
+      isDraft: isDraft ?? this.isDraft,
+      aspect: aspect ?? this.aspect,
+      parentId: parentId ?? this.parentId,
+      ownerProfileId: ownerProfileId ?? this.ownerProfileId,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
