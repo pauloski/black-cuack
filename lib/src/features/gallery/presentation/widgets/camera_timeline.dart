@@ -13,6 +13,9 @@ class CameraTimeline extends StatelessWidget {
   final void Function(int oldIndex, int newIndex)? onReorder;
   final void Function(int index)? onDuplicate;
   final void Function(int index)? onDelete;
+  /// Relación del proyecto: los thumbnails adoptan esta forma (apaisados en
+  /// 16:9, verticales en 9:16) en vez de una caja fija vertical.
+  final double frameAspect;
 
   const CameraTimeline({
     super.key,
@@ -22,6 +25,7 @@ class CameraTimeline extends StatelessWidget {
     this.onReorder,
     this.onDuplicate,
     this.onDelete,
+    this.frameAspect = 9 / 16,
   });
 
   @override
@@ -38,8 +42,8 @@ class CameraTimeline extends StatelessWidget {
     }
 
     return Container(
-      height: 96,
-      margin: const EdgeInsets.only(bottom: 10, top: 4),
+      height: 72,
+      margin: const EdgeInsets.only(bottom: 8, top: 2),
       child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -59,17 +63,20 @@ class CameraTimeline extends StatelessWidget {
             padding: const EdgeInsets.only(right: 6),
             child: GestureDetector(
               onTap: () => onPhotoTap(isSelected ? null : index),
-              child: SizedBox(
-                width: 58,
-                child: Column(
-                  children: [
-                    Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Thumbnail con la FORMA del proyecto (apaisado en 16:9).
+                  SizedBox(
+                    height: 48,
+                    child: AspectRatio(
+                      aspectRatio: frameAspect,
                       child: Stack(
                         children: [
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primary
@@ -78,7 +85,7 @@ class CameraTimeline extends StatelessWidget {
                                 ),
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                                 child: _buildImage(xfile.path),
                               ),
                             ),
@@ -100,18 +107,17 @@ class CameraTimeline extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text('${index + 1}',
-                        style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontSize: 9,
-                          color:
-                              isSelected ? AppColors.primary : Colors.white38,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                        )),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text('${index + 1}',
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontSize: 9,
+                        color: isSelected ? AppColors.primary : Colors.white38,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      )),
+                ],
               ),
             ),
           );
@@ -139,13 +145,13 @@ class CameraTimeline extends StatelessWidget {
     if (path.startsWith('http') || path.startsWith('blob:') || kIsWeb) {
       return Image.network(path,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, e, s) => Container(
               color: Colors.white10,
               child: const Icon(Icons.sync, color: Colors.white24, size: 20)));
     }
     return Image.file(File(path),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, e, s) =>
             const Icon(Icons.broken_image, color: Colors.white24));
   }
 }

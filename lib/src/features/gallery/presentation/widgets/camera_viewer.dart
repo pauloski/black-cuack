@@ -17,6 +17,10 @@ class CameraViewer extends StatefulWidget {
   final int? selectedIndex;
   final List<XFile> capturedPhotos;
   final QuackProject? projectToLoad;
+  /// Relación del MARCO del proyecto (9:16 → 0.5625, 16:9 → 1.777). El visor se
+  /// recorta a este aspecto (cover), así se ve exactamente lo que se captura y
+  /// exporta, sin bandas negras. Si es null, cae al aspecto del sensor.
+  final double? frameAspect;
   final Future<void> Function({
     required String name,
     required String artist,
@@ -35,6 +39,7 @@ class CameraViewer extends StatefulWidget {
     this.selectedIndex,
     required this.capturedPhotos,
     this.projectToLoad,
+    this.frameAspect,
     this.onSave,
   });
 
@@ -232,50 +237,161 @@ class CameraViewerState extends State<CameraViewer> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  /// Vista previa que CUBRE el marco de recorte `bw`×`bh` (no la pantalla): la
+  /// zona del marco muestra EXACTAMENTE el recorte central al aspecto del
+  /// proyecto —lo que se captura y con lo que calza el papel cebolla— y el
+  /// excedente del sensor se derrama (atenuado) fuera del marco, recortado por
+  /// el Stack. Así el visor se llena todo lo posible sin mentir sobre el encuadre.
+  Widget _coveredPreview(double bw, double bh) {
+    final camAspect = widget.controller.value.aspectRatio;
+    // Escala que hace que el sensor cubra el marco (BoxFit.cover sobre bw×bh).
+    final double scale = (bw / camAspect) > bh ? (bw / camAspect) : bh;
+    final double pw = camAspect * scale;
+    final double ph = scale;
+    return OverflowBox(
+      maxWidth: pw,
+      maxHeight: ph,
+      child: SizedBox(
+        width: pw,
+        height: ph,
+        child: CameraPreview(widget.controller),
+      ),
+    );
+  }
+
+  /// Contenido que vive DENTRO del marco de recorte (lo que se captura y
+  /// exporta): cuadrícula, papel cebolla y el cuadro seleccionado. Alineado al
+  /// marco del proyecto, recortado a él.
+  Widget _cropContent(double frameAspect) {
     return Center(
       child: AspectRatio(
-        aspectRatio: widget.controller.value.aspectRatio,
-        child: Stack(
-          children: [
-            CameraPreview(widget.controller),
-            if (widget.showGrid && !widget.isPlaying)
-              Positioned.fill(child: CustomPaint(painter: GridPainter())),
-            // Multi-layer onion skin: más reciente encima, más antiguo abajo
-            if (widget.onionLayers > 0 &&
-                widget.capturedPhotos.isNotEmpty &&
-                !widget.isPlaying &&
-                widget.selectedIndex == null)
-              for (int i = widget.onionLayers - 1; i >= 0; i--)
-                if (widget.capturedPhotos.length - 1 - i >= 0)
-                  _buildOnionLayer(
-                    widget.capturedPhotos[widget.capturedPhotos.length - 1 - i],
-                    // i=0 → capa más reciente (opacidad completa)
-                    // i=1 → capa anterior (50%)
-                    // i=2 → capa más antigua (25%)
-                    widget.onionOpacity * [1.0, 0.5, 0.25][i],
-                  ),
-            if (widget.selectedIndex != null)
-              Container(
-                color: Colors.black,
-                width: double.infinity,
-                height: double.infinity,
-                child: kIsWeb
-                    ? Image.network(
-                        widget.capturedPhotos[widget.selectedIndex!].path,
-                        fit: BoxFit.contain,
-                      )
-                    : Image.file(
-                        File(widget.capturedPhotos[widget.selectedIndex!].path),
-                        fit: BoxFit.contain,
-                      ),
-              ),
-          ],
+        aspectRatio: frameAspect,
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.showGrid && !widget.isPlaying)
+                Positioned.fill(child: CustomPaint(painter: GridPainter())),
+              // Papel cebolla: más reciente encima, más antiguo abajo.
+              if (widget.onionLayers > 0 &&
+                  widget.capturedPhotos.isNotEmpty &&
+                  !widget.isPlaying &&
+                  widget.selectedIndex == null)
+                for (int i = widget.onionLayers - 1; i >= 0; i--)
+                  if (widget.capturedPhotos.length - 1 - i >= 0)
+                    _buildOnionLayer(
+                      widget
+                          .capturedPhotos[widget.capturedPhotos.length - 1 - i],
+                      widget.onionOpacity * [1.0, 0.5, 0.25][i],
+                    ),
+              if (widget.selectedIndex != null)
+                Container(
+                  color: Colors.black,
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: kIsWeb
+                      ? Image.network(
+                          widget.capturedPhotos[widget.selectedIndex!].path,
+                          fit: BoxFit.contain,
+                        )
+                      : Image.file(
+                          File(widget.capturedPhotos[widget.selectedIndex!].path),
+                          fit: BoxFit.contain,
+                        ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    // Marco del proyecto (9:16 / 16:9); fallback al aspecto del sensor.
+    final double frameAspect =
+        widget.frameAspect ?? widget.controller.value.aspectRatio;
+    // Pantalla completa: la cámara se derrama por todo el visor; un atenuado
+    // marca la zona que realmente se captura (el marco del proyecto, centrado).
+    return LayoutBuilder(
+      builder: (context, c) {
+        // Marco de recorte = relación del proyecto, lo más grande que quepa.
+        double bw = c.maxWidth;
+        double bh = c.maxHeight;
+        if (bw / bh > frameAspect) {
+          bw = bh * frameAspect;
+        } else {
+          bh = bw / frameAspect;
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1) Cámara: cubre el marco; el excedente del sensor se derrama.
+            Center(child: _coveredPreview(bw, bh)),
+            // 2) Atenúa lo que queda FUERA del marco de recorte.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _CaptureMaskPainter(
+                    aspect: frameAspect,
+                    dim: Colors.black.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+            ),
+            // 3) Contenido dentro del marco (cuadrícula, cebolla, seleccionado).
+            _cropContent(frameAspect),
+            // 4) Borde del marco de recorte.
+            Center(
+              child: AspectRatio(
+                aspectRatio: frameAspect,
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          width: 2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Pinta un velo oscuro sobre todo MENOS el marco de recorte centrado (la zona
+/// que se captura queda clara; el resto, atenuado). El marco tiene la relación
+/// del proyecto y se centra en el visor.
+class _CaptureMaskPainter extends CustomPainter {
+  final double aspect;
+  final Color dim;
+  _CaptureMaskPainter({required this.aspect, required this.dim});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double w = size.width;
+    double h = size.height;
+    if (w / h > aspect) {
+      w = h * aspect; // más ancho que el marco → limitar ancho
+    } else {
+      h = w / aspect; // más alto que el marco → limitar alto
+    }
+    final rect = Rect.fromLTWH(
+        (size.width - w) / 2, (size.height - h) / 2, w, h);
+    final path = Path()
+      ..addRect(Offset.zero & size)
+      ..addRect(rect)
+      ..fillType = PathFillType.evenOdd;
+    canvas.drawPath(path, Paint()..color = dim);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CaptureMaskPainter old) =>
+      old.aspect != aspect || old.dim != dim;
 }
 
 class GridPainter extends CustomPainter {
