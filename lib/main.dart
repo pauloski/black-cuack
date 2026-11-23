@@ -53,7 +53,7 @@ class BlackCuackApp extends StatelessWidget {
       // ✅ VINCULACIÓN DE LA LLAVE
       navigatorKey: navigatorKey,
 
-      title: 'Blackcuack Studio',
+      title: 'BlackQuack Studio',
       debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
