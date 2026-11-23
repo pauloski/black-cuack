@@ -6,8 +6,10 @@ import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/core/widgets/ephemeral_banner.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/projection_page.dart';
-import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
-    show activeProfileId;
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart';
+import 'package:blackcuack_studio/src/features/workshop/data/workshop_service.dart'
+    show activeWorkshopCode;
+import 'package:blackcuack_studio/src/features/workshop/presentation/team_helpers.dart';
 import 'package:blackcuack_studio/src/features/auth/data/group_service.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/group_details_page.dart';
@@ -269,9 +271,67 @@ Future<void> startNewProjectFlow(BuildContext context) async {
     ),
   );
   if (aspect == null || !context.mounted) return;
-  Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => CameraPage(aspect: aspect)));
+  // Nombre del proyecto al crear (HDU aula): el equipo le pone nombre de entrada.
+  final name = await _askProjectName(context);
+  if (name == null || !context.mounted) return; // canceló
+  // Equipo del proyecto (HDU aula): se arma ANTES de la cámara (sin visor, para
+  // no tocar la orientación). Devuelve los ids de los perfiles miembros.
+  final members = await _buildTeam(context);
+  if (!context.mounted) return;
+  Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) =>
+          CameraPage(aspect: aspect, initialName: name, initialMembers: members)));
 }
+
+/// Pide el nombre del proyecto nuevo. Devuelve null si se cancela; '' si se
+/// deja vacío (el editor usará "Mi Animación").
+Future<String?> _askProjectName(BuildContext context) {
+  final ctrl = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1A1A1A),
+      title: const Text('NOMBRE DEL PROYECTO',
+          style: TextStyle(
+              fontFamily: 'Lexend', color: AppColors.primary, fontSize: 15)),
+      content: TextField(
+        controller: ctrl,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Ej: Nuestra aventura',
+          hintStyle: const TextStyle(color: Colors.white24),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        onSubmitted: (v) => Navigator.pop(ctx, v),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCELAR')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+          onPressed: () => Navigator.pop(ctx, ctrl.text),
+          child: const Text('CREAR', style: TextStyle(color: Colors.black)),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Arma el equipo del proyecto nuevo: fuera de una sala, solo el perfil activo;
+/// en una sala, abre la hoja para elegir/crear compañeros. Devuelve los ids.
+Future<List<String>> _buildTeam(BuildContext context) async {
+  final owner = activeProfileId;
+  if (activeWorkshopCode.isEmpty) {
+    return [if (owner.isNotEmpty) owner];
+  }
+  final picked = await showTeamSheet(context,
+      initial: {if (owner.isNotEmpty) owner}, owner: owner);
+  return (picked ?? {if (owner.isNotEmpty) owner}).toList();
+}
+
 
 class _AspectChoice extends StatelessWidget {
   final IconData icon;
@@ -432,12 +492,18 @@ class _WorkspacePageState extends State<_WorkspacePage> {
                 color: AppColors.primary, size: 24),
             tooltip: 'Proyectar todo',
             onPressed: () async {
-              final all = (await projectRepository.loadProjects())
-                  .where((p) =>
-                      p.photoPaths.isNotEmpty &&
-                      p.parentId == null &&
-                      p.ownerProfileId == activeProfileId)
-                  .toList();
+              final inWorkshop = activeWorkshopCode.isNotEmpty;
+              final all = (await projectRepository.loadProjects()).where((p) {
+                if (p.photoPaths.isEmpty || p.parentId != null) return false;
+                final mine = p.ownerProfileId == activeProfileId ||
+                    p.memberProfileIds.contains(activeProfileId);
+                return inWorkshop
+                    ? (mine ||
+                        p.workshopCode == activeWorkshopCode ||
+                        p.workshopCode == null ||
+                        p.workshopCode!.isEmpty)
+                    : mine;
+              }).toList();
               if (!context.mounted) return;
               if (all.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -533,16 +599,26 @@ class _WorkspacePageState extends State<_WorkspacePage> {
 }
 
 // ── Tab: Proyectos ────────────────────────────────────────────────────────────
-class _ProjectsTab extends StatelessWidget {
+class _ProjectsTab extends StatefulWidget {
   final VoidCallback onProjectCreated;
   const _ProjectsTab({required this.onProjectCreated});
+
+  @override
+  State<_ProjectsTab> createState() => _ProjectsTabState();
+}
+
+class _ProjectsTabState extends State<_ProjectsTab> {
+  // Cambiar esta key recrea el grid (nuevo State → recarga proyectos). Se hace
+  // al volver de crear un proyecto, para que el nuevo aparezca de inmediato.
+  Key _gridKey = UniqueKey();
+  void _reloadGrid() => setState(() => _gridKey = UniqueKey());
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         // Grid scrolls with bottom padding so it clears the fixed button
-        const ProjectGridView(bottomPadding: 110),
+        ProjectGridView(key: _gridKey, bottomPadding: 110),
 
         // Fixed bottom button with fade gradient
         Positioned(
@@ -560,7 +636,8 @@ class _ProjectsTab extends StatelessWidget {
             child: GestureDetector(
               onTap: () async {
                 await startNewProjectFlow(context);
-                onProjectCreated();
+                _reloadGrid();
+                widget.onProjectCreated();
               },
               child: Container(
                 width: double.infinity,

@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
-import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
-    show activeProfileId;
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart';
+import 'package:blackcuack_studio/src/features/workshop/data/workshop_service.dart'
+    show activeWorkshopCode;
+import 'package:blackcuack_studio/src/features/workshop/presentation/team_helpers.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/pages/movie_player_page.dart';
 import 'package:blackcuack_studio/src/features/gallery/presentation/camera_page.dart';
@@ -19,15 +21,40 @@ class ProjectGridView extends StatefulWidget {
 
 class _ProjectGridViewState extends State<ProjectGridView> {
   late Future<List<QuackProject>> _future;
+  // id de perfil → avatar (emoji), para mostrar los miembros en cada tarjeta.
+  Map<String, String> _avatarById = {};
 
   @override
   void initState() {
     super.initState();
     _future = projectRepository.loadProjects();
+    _loadAvatars();
+  }
+
+  Future<void> _loadAvatars() async {
+    final profiles = await ProfileService.list();
+    if (!mounted) return;
+    setState(() =>
+        _avatarById = {for (final p in profiles) p.id: p.avatar});
   }
 
   void _reload() {
     setState(() => _future = projectRepository.loadProjects());
+    _loadAvatars();
+  }
+
+  /// Gestiona el equipo de un proyecto ya creado: agrega/quita miembros.
+  Future<void> _manageTeam(QuackProject p) async {
+    final picked = await showTeamSheet(
+      context,
+      initial: p.memberProfileIds.toSet(),
+      owner: p.ownerProfileId,
+      title: 'EQUIPO DE "${p.name}"',
+    );
+    if (picked == null) return;
+    await projectRepository
+        .saveProject(p.copyWith(memberProfileIds: picked.toList()));
+    _reload();
   }
 
   @override
@@ -42,11 +69,23 @@ class _ProjectGridViewState extends State<ProjectGridView> {
           );
         }
         // Un borrador con 0 cuadros no aparece; las versiones (parentId) tampoco.
+        // Visible si soy del equipo (dueño o compañero). En una sala, además se
+        // muestran los proyectos de esta sala y los sin etiqueta (no se esconde
+        // nada). Así un proyecto que creó un pato con una rana y un perro
+        // aparece en los perfiles de los tres.
+        final inWorkshop = activeWorkshopCode.isNotEmpty;
         final proyectos = (snapshot.data ?? [])
-            .where((p) =>
-                p.photoPaths.isNotEmpty &&
-                p.parentId == null &&
-                p.ownerProfileId == activeProfileId)
+            .where((p) {
+              if (p.photoPaths.isEmpty || p.parentId != null) return false;
+              final mine = p.ownerProfileId == activeProfileId ||
+                  p.memberProfileIds.contains(activeProfileId);
+              return inWorkshop
+                  ? (mine ||
+                      p.workshopCode == activeWorkshopCode ||
+                      p.workshopCode == null ||
+                      p.workshopCode!.isEmpty)
+                  : mine;
+            })
             .toList();
         if (proyectos.isEmpty) {
           return const Center(
@@ -88,6 +127,11 @@ class _ProjectGridViewState extends State<ProjectGridView> {
             return _ProjectCard(
               project: p,
               previewFrameId: firstId,
+              memberAvatars: p.memberProfileIds
+                  .map((id) => _avatarById[id])
+                  .whereType<String>()
+                  .toList(),
+              onManageTeam: () => _manageTeam(p),
               onOpen: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => MoviePlayerPage(project: p)),
@@ -164,16 +208,20 @@ class _ProjectGridViewState extends State<ProjectGridView> {
 class _ProjectCard extends StatelessWidget {
   final QuackProject project;
   final String? previewFrameId;
+  final List<String> memberAvatars; // avatares de los miembros del equipo
   final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onManageTeam;
 
   const _ProjectCard({
     required this.project,
     required this.previewFrameId,
+    this.memberAvatars = const [],
     required this.onOpen,
     required this.onEdit,
     required this.onDelete,
+    required this.onManageTeam,
   });
 
   @override
@@ -225,26 +273,33 @@ class _ProjectCard extends StatelessWidget {
               ),
             ],
           ),
-          if (project.isDraft)
+          // Equipo del proyecto: avatares de los miembros (hasta 4) arriba-izq.
+          if (memberAvatars.isNotEmpty)
             Positioned(
               top: 6,
               left: 6,
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'BORRADOR',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: 'Lexend',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 9,
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final a in memberAvatars.take(4))
+                      Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Text(a, style: const TextStyle(fontSize: 14)),
+                      ),
+                    if (memberAvatars.length > 4)
+                      Text('+${memberAvatars.length - 4}',
+                          style: const TextStyle(
+                              color: Colors.white70,
+                              fontFamily: 'Lexend',
+                              fontSize: 10)),
+                  ],
                 ),
               ),
             ),
@@ -253,6 +308,12 @@ class _ProjectCard extends StatelessWidget {
             right: 6,
             child: Row(
               children: [
+                _OverlayBtn(
+                  icon: Icons.group_add_rounded,
+                  color: AppColors.secondary,
+                  onTap: onManageTeam,
+                ),
+                const SizedBox(width: 5),
                 _OverlayBtn(
                   icon: Icons.edit_rounded,
                   color: AppColors.primary,
