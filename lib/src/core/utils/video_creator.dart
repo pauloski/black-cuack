@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:universal_html/html.dart' as html;
 import 'package:http/http.dart' as http;
+import 'package:blackcuack_studio/src/core/utils/frame_codec.dart'
+    show cropImageToAspect;
 import 'ffmpeg_web_stub.dart'
     if (dart.library.js_interop) 'ffmpeg_web.dart';
 
@@ -24,14 +26,18 @@ class VideoCreator {
     double fps, {
     required String filename,
     required Function(double) onProgress,
+    // Relación del proyecto (ancho/alto). Los cuadros se guardan sin recortar;
+    // al exportar se recortan a este aspecto. null = sin recorte.
+    double? aspect,
   }) async {
     switch (format) {
       case ExportFormat.gif:
-        return _exportGif(imagePaths, fps, filename, onProgress);
+        return _exportGif(imagePaths, fps, filename, onProgress, aspect);
       case ExportFormat.mp4:
         return _exportMp4(imagePaths, fps, filename, onProgress);
       case ExportFormat.imageSequence:
-        return _exportImageSequenceZip(imagePaths, filename, onProgress);
+        return _exportImageSequenceZip(
+            imagePaths, filename, onProgress, aspect);
     }
   }
 
@@ -41,6 +47,7 @@ class VideoCreator {
     double fps,
     String filename,
     Function(double) onProgress,
+    double? aspect,
   ) async {
     final frameDelay = (100 / fps).round();
     final encoder = img.GifEncoder(delay: frameDelay, repeat: 0);
@@ -52,6 +59,7 @@ class VideoCreator {
         final bytes = await _fetchBytes(imagePaths[i]);
         img.Image? frame = img.decodeImage(bytes);
         if (frame != null) {
+          if (aspect != null) frame = cropImageToAspect(frame, aspect);
           if (frame.width > 720) frame = img.copyResize(frame, width: 720);
           _applyWatermark(frame);
           encoder.addFrame(frame);
@@ -160,6 +168,7 @@ class VideoCreator {
     List<String> imagePaths,
     String filename,
     Function(double) onProgress,
+    double? aspect,
   ) async {
     final archive = Archive();
 
@@ -167,7 +176,10 @@ class VideoCreator {
       onProgress((i + 1) / imagePaths.length * 0.85);
       try {
         final raw = await _fetchBytes(imagePaths[i]);
-        final decoded = img.decodeImage(raw);
+        var decoded = img.decodeImage(raw);
+        if (decoded != null && aspect != null) {
+          decoded = cropImageToAspect(decoded, aspect);
+        }
         final bytes = decoded != null
             ? Uint8List.fromList(
                 img.encodeJpg(_applyWatermark(decoded), quality: 90))

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
+import 'package:blackcuack_studio/src/core/utils/frame_codec.dart'
+    show aspectValue;
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 
 /// Modo proyección (HDU13): pantalla completa, **sin controles**, en bucle.
@@ -70,10 +72,17 @@ class _ProjectionPageState extends State<ProjectionPage> {
                   : _frames.isEmpty
                       ? const Text('Sin cuadros',
                           style: TextStyle(color: Colors.white24))
-                      : Image.memory(_frames[_i],
-                          key: ValueKey(_i),
-                          fit: BoxFit.contain,
-                          gaplessPlayback: true),
+                      : AspectRatio(
+                          aspectRatio: aspectValue(widget.projects.isNotEmpty
+                              ? widget.projects.first.aspect
+                              : '9:16'),
+                          child: ClipRect(
+                            child: Image.memory(_frames[_i],
+                                key: ValueKey(_i),
+                                fit: BoxFit.cover,
+                                gaplessPlayback: true),
+                          ),
+                        ),
             ),
             if (_showHint && !_loading)
               Positioned(

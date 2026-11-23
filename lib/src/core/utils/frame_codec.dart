@@ -61,7 +61,11 @@ Uint8List compressFrameJpeg(
   }
 }
 
-/// Recorte centrado a la relación [aspect] (ancho/alto).
+/// Recorte centrado a la relación [aspect] (ancho/alto). Público para que el
+/// exportador y el reproductor apliquen el recorte del proyecto (los cuadros se
+/// guardan SIN recortar, al aspecto del sensor, para que el papel cebolla calce).
+img.Image cropImageToAspect(img.Image im, double aspect) => _cropToAspect(im, aspect);
+
 img.Image _cropToAspect(img.Image im, double aspect) {
   final current = im.width / im.height;
   if ((current - aspect).abs() < 0.001) return im;

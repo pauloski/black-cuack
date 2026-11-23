@@ -237,31 +237,8 @@ class CameraViewerState extends State<CameraViewer> {
     );
   }
 
-  /// Vista previa que CUBRE el marco de recorte `bw`×`bh` (no la pantalla): la
-  /// zona del marco muestra EXACTAMENTE el recorte central al aspecto del
-  /// proyecto —lo que se captura y con lo que calza el papel cebolla— y el
-  /// excedente del sensor se derrama (atenuado) fuera del marco, recortado por
-  /// el Stack. Así el visor se llena todo lo posible sin mentir sobre el encuadre.
-  Widget _coveredPreview(double bw, double bh) {
-    final camAspect = widget.controller.value.aspectRatio;
-    // Escala que hace que el sensor cubra el marco (BoxFit.cover sobre bw×bh).
-    final double scale = (bw / camAspect) > bh ? (bw / camAspect) : bh;
-    final double pw = camAspect * scale;
-    final double ph = scale;
-    return OverflowBox(
-      maxWidth: pw,
-      maxHeight: ph,
-      child: SizedBox(
-        width: pw,
-        height: ph,
-        child: CameraPreview(widget.controller),
-      ),
-    );
-  }
-
-  /// Contenido que vive DENTRO del marco de recorte (lo que se captura y
-  /// exporta): cuadrícula, papel cebolla y el cuadro seleccionado. Alineado al
-  /// marco del proyecto, recortado a él.
+  /// Contenido dentro del marco de recorte: cuadrícula y el cuadro seleccionado.
+  /// (El papel cebolla se dibuja junto al preview, ver [_coveredPreview].)
   Widget _cropContent(double frameAspect) {
     return Center(
       child: AspectRatio(
@@ -272,31 +249,21 @@ class CameraViewerState extends State<CameraViewer> {
             children: [
               if (widget.showGrid && !widget.isPlaying)
                 Positioned.fill(child: CustomPaint(painter: GridPainter())),
-              // Papel cebolla: más reciente encima, más antiguo abajo.
-              if (widget.onionLayers > 0 &&
-                  widget.capturedPhotos.isNotEmpty &&
-                  !widget.isPlaying &&
-                  widget.selectedIndex == null)
-                for (int i = widget.onionLayers - 1; i >= 0; i--)
-                  if (widget.capturedPhotos.length - 1 - i >= 0)
-                    _buildOnionLayer(
-                      widget
-                          .capturedPhotos[widget.capturedPhotos.length - 1 - i],
-                      widget.onionOpacity * [1.0, 0.5, 0.25][i],
-                    ),
               if (widget.selectedIndex != null)
                 Container(
                   color: Colors.black,
                   width: double.infinity,
                   height: double.infinity,
+                  // cover: los cuadros se guardan sin recortar; aquí se recorta
+                  // al marco del proyecto (igual que la captura/export).
                   child: kIsWeb
                       ? Image.network(
                           widget.capturedPhotos[widget.selectedIndex!].path,
-                          fit: BoxFit.contain,
+                          fit: BoxFit.cover,
                         )
                       : Image.file(
                           File(widget.capturedPhotos[widget.selectedIndex!].path),
-                          fit: BoxFit.contain,
+                          fit: BoxFit.cover,
                         ),
                 ),
             ],
@@ -308,57 +275,65 @@ class CameraViewerState extends State<CameraViewer> {
 
   @override
   Widget build(BuildContext context) {
+    final double camAspect = widget.controller.value.aspectRatio;
     // Marco del proyecto (9:16 / 16:9); fallback al aspecto del sensor.
-    final double frameAspect =
-        widget.frameAspect ?? widget.controller.value.aspectRatio;
-    // Pantalla completa: la cámara se derrama por todo el visor; un atenuado
-    // marca la zona que realmente se captura (el marco del proyecto, centrado).
-    return LayoutBuilder(
-      builder: (context, c) {
-        // Marco de recorte = relación del proyecto, lo más grande que quepa.
-        double bw = c.maxWidth;
-        double bh = c.maxHeight;
-        if (bw / bh > frameAspect) {
-          bw = bh * frameAspect;
-        } else {
-          bh = bw / frameAspect;
-        }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            // 1) Cámara: cubre el marco; el excedente del sensor se derrama.
-            Center(child: _coveredPreview(bw, bh)),
-            // 2) Atenúa lo que queda FUERA del marco de recorte.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _CaptureMaskPainter(
-                    aspect: frameAspect,
-                    dim: Colors.black.withValues(alpha: 0.45),
-                  ),
-                ),
-              ),
-            ),
-            // 3) Contenido dentro del marco (cuadrícula, cebolla, seleccionado).
-            _cropContent(frameAspect),
-            // 4) Borde del marco de recorte.
-            Center(
-              child: AspectRatio(
-                aspectRatio: frameAspect,
+    final double frameAspect = widget.frameAspect ?? camAspect;
+    final bool showOnion = widget.onionLayers > 0 &&
+        widget.capturedPhotos.isNotEmpty &&
+        !widget.isPlaying &&
+        widget.selectedIndex == null;
+    // El visor muestra la TOMA COMPLETA (aspecto del sensor), exactamente lo que
+    // se captura — por eso el papel cebolla (misma caja) calza 1:1. El marco del
+    // proyecto es solo una GUÍA atenuada de lo que se recortará al exportar.
+    return Center(
+      child: AspectRatio(
+        aspectRatio: camAspect,
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1) Cámara completa + papel cebolla, en la misma caja → calzan.
+              CameraPreview(widget.controller),
+              if (showOnion)
+                for (int i = widget.onionLayers - 1; i >= 0; i--)
+                  if (widget.capturedPhotos.length - 1 - i >= 0)
+                    _buildOnionLayer(
+                      widget
+                          .capturedPhotos[widget.capturedPhotos.length - 1 - i],
+                      widget.onionOpacity * [1.0, 0.5, 0.25][i],
+                    ),
+              // 2) Atenúa fuera del marco del proyecto (guía de recorte).
+              Positioned.fill(
                 child: IgnorePointer(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          width: 2),
+                  child: CustomPaint(
+                    painter: _CaptureMaskPainter(
+                      aspect: frameAspect,
+                      dim: Colors.black.withValues(alpha: 0.45),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        );
-      },
+              // 3) Cuadrícula y cuadro seleccionado dentro del marco.
+              _cropContent(frameAspect),
+              // 4) Borde del marco de recorte.
+              Center(
+                child: AspectRatio(
+                  aspectRatio: frameAspect,
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
