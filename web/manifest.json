@@ -1,12 +1,12 @@
 {
-    "name": "Blackcuack Studio",
-    "short_name": "Blackcuack",
+    "name": "BlackQuack Studio",
+    "short_name": "BlackQuack",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0E0E0E",
     "theme_color": "#FFB800",
     "description": "Stop-motion animation studio for creators.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
