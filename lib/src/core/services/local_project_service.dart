@@ -6,7 +6,23 @@ import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
 import 'package:blackcuack_studio/src/features/gallery/domain/project_model.dart';
 import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart'
     show activeProfileId;
+import 'package:blackcuack_studio/src/features/workshop/data/workshop_service.dart'
+    show activeWorkshopCode;
 import 'package:blackcuack_studio/src/features/gallery/domain/project_repository.dart';
+
+/// Código de sala activa como valor nulo-seguro ('' → null) para etiquetar el
+/// proyecto/versión de la sesión.
+String? get _activeWorkshopOrNull =>
+    activeWorkshopCode.isEmpty ? null : activeWorkshopCode;
+
+/// Une al dueño (perfil activo) con la lista de miembros, sin vacíos ni
+/// duplicados. El dueño siempre es miembro.
+List<String> _withOwner(List<String> members) {
+  return <String>{
+    if (activeProfileId.isNotEmpty) activeProfileId,
+    ...members.where((m) => m.isNotEmpty),
+  }.toList();
+}
 
 /// Un cuadro al momento de guardar: o ya existe en el repo (se reusa su id,
 /// **sin recomprimir**), o es nuevo (bytes crudos que se comprimen).
@@ -41,6 +57,7 @@ Future<QuackProject> saveCapturedProject(
   String? workshopCode,
   bool isDraft = false,
   String aspect = '9:16',
+  List<String> memberProfileIds = const [],
 }) async {
   final ids = <String>[];
   final sw = Stopwatch();
@@ -50,7 +67,8 @@ Future<QuackProject> saveCapturedProject(
       ids.add(f.existingId!);
     } else {
       sw.start();
-      final jpeg = compressFrameJpeg(f.bytes!, aspect: aspectValue(aspect));
+      // Sin recorte (aspecto del sensor); el recorte al proyecto va en export/player.
+      final jpeg = compressFrameJpeg(f.bytes!);
       sw.stop();
       newCount++;
       ids.add(await repo.addFrame(jpeg));
@@ -71,10 +89,12 @@ Future<QuackProject> saveCapturedProject(
     photoPaths: ids,
     date: date ?? DateTime.now(),
     isPublished: isPublished,
-    workshopCode: workshopCode,
+    // Sala del taller: usa la seleccionada (grupo nube) o, si no, la sala activa.
+    workshopCode: workshopCode ?? _activeWorkshopOrNull,
     isDraft: isDraft,
     aspect: aspect,
     ownerProfileId: activeProfileId,
+    memberProfileIds: _withOwner(memberProfileIds),
   );
   return repo.saveProject(project);
 }
@@ -90,6 +110,7 @@ Future<QuackProject> saveDraft(
   String name = 'Borrador',
   String artistName = '',
   String aspect = '9:16',
+  List<String> memberProfileIds = const [],
 }) async {
   final project = QuackProject(
     id: id,
@@ -99,7 +120,9 @@ Future<QuackProject> saveDraft(
     date: DateTime.now(),
     isDraft: true,
     aspect: aspect,
+    workshopCode: _activeWorkshopOrNull,
     ownerProfileId: activeProfileId,
+    memberProfileIds: _withOwner(memberProfileIds),
   );
   return repo.saveProject(project);
 }
@@ -114,7 +137,12 @@ Future<QuackProject> saveVersion(
   String author = '',
   String aspect = '9:16',
   String? name,
+  String authorRole = '',
+  bool isCollaborative = false,
+  // Participantes de la versión (ids de perfil). Si hay varios, es colaborativa.
+  List<String> participantIds = const [],
 }) async {
+  final participants = participantIds.where((p) => p.isNotEmpty).toList();
   final project = QuackProject(
     id: 'v_${DateTime.now().microsecondsSinceEpoch}',
     name: name ?? 'Versión',
@@ -123,7 +151,11 @@ Future<QuackProject> saveVersion(
     date: DateTime.now(),
     aspect: aspect,
     parentId: parentId,
+    workshopCode: _activeWorkshopOrNull,
     ownerProfileId: activeProfileId,
+    authorRole: authorRole,
+    isCollaborative: isCollaborative || participants.length > 1,
+    memberProfileIds: participants,
   );
   return repo.saveProject(project);
 }

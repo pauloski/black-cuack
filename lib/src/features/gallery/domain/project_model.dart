@@ -17,6 +17,13 @@ class QuackProject {
   final String? parentId;
   // Perfil local dueño (HDU6): cada perfil ve solo sus proyectos. '' = general.
   final String ownerProfileId;
+  // Autoría de versión (HDU5/aula): rol del autor al guardar (ej. 'Director')
+  // e indicador de si es una versión colaborativa del grupo entero.
+  final String authorRole;
+  final bool isCollaborative;
+  // Equipo del proyecto (HDU aula): ids de los perfiles asociados (dueño +
+  // compañeros). El proyecto aparece en "Mis proyectos" de cada miembro.
+  final List<String> memberProfileIds;
 
   QuackProject({
     required this.id,
@@ -31,6 +38,9 @@ class QuackProject {
     this.aspect = '9:16',
     this.parentId,
     this.ownerProfileId = '',
+    this.authorRole = '',
+    this.isCollaborative = false,
+    this.memberProfileIds = const [],
   });
 
   QuackProject copyWith({
@@ -45,6 +55,9 @@ class QuackProject {
     String? aspect,
     String? parentId,
     String? ownerProfileId,
+    String? authorRole,
+    bool? isCollaborative,
+    List<String>? memberProfileIds,
   }) {
     return QuackProject(
       id: id,
@@ -59,6 +72,9 @@ class QuackProject {
       aspect: aspect ?? this.aspect,
       parentId: parentId ?? this.parentId,
       ownerProfileId: ownerProfileId ?? this.ownerProfileId,
+      authorRole: authorRole ?? this.authorRole,
+      isCollaborative: isCollaborative ?? this.isCollaborative,
+      memberProfileIds: memberProfileIds ?? this.memberProfileIds,
     );
   }
 
@@ -75,6 +91,9 @@ class QuackProject {
     'aspect': aspect,
     'parentId': parentId,
     'ownerProfileId': ownerProfileId,
+    'authorRole': authorRole,
+    'isCollaborative': isCollaborative,
+    'memberProfileIds': memberProfileIds,
   };
 
   factory QuackProject.fromJson(Map<String, dynamic> json) {
@@ -98,6 +117,12 @@ class QuackProject {
       aspect: json['aspect'] ?? '9:16',
       parentId: json['parentId'],
       ownerProfileId: json['ownerProfileId'] ?? '',
+      authorRole: json['authorRole'] ?? '',
+      isCollaborative: json['isCollaborative'] ?? false,
+      memberProfileIds: (json['memberProfileIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 }

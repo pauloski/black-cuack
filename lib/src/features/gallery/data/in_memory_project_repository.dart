@@ -23,6 +23,12 @@ class InMemoryProjectRepository implements ProjectRepository {
   }
 
   @override
+  Future<void> clearAll() async {
+    _projects.clear();
+    _frames.clear();
+  }
+
+  @override
   Future<QuackProject?> getProject(String id) async => _projects[id];
 
   @override

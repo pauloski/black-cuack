@@ -45,6 +45,12 @@ class HiveProjectRepository implements ProjectRepository {
   }
 
   @override
+  Future<void> clearAll() async {
+    await _projects.clear();
+    await _frames.clear();
+  }
+
+  @override
   Future<QuackProject?> getProject(String id) async {
     final json = _projects.get(id);
     if (json == null) return null;

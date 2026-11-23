@@ -25,6 +25,9 @@ abstract interface class ProjectRepository {
   /// Todos los proyectos, del más reciente al más antiguo.
   Future<List<QuackProject>> loadProjects();
 
+  /// Borra TODOS los proyectos y cuadros (reinicio de datos de prueba).
+  Future<void> clearAll();
+
   /// Un proyecto por id, o null si no existe.
   Future<QuackProject?> getProject(String id);
 
