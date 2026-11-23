@@ -2,11 +2,15 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart';
 import 'package:blackcuack_studio/src/features/profile/domain/profile_model.dart';
+import 'package:blackcuack_studio/src/features/workshop/data/workshop_service.dart';
 
 const _avatars = ['🦆', '🐱', '🐶', '🦊', '🐸', '🐼', '🐯', '🦉'];
+// Roles del taller (HDU aula). "Otro" habilita un campo de texto libre.
+const _roles = ['Animador', 'Cámara', 'Director', 'Otro'];
 // "Dibujos" para la clave de imágenes (demo).
 const _keyIcons = [
   '⭐', '🌙', '☀️', '🌈', '🍎', '🌵', '🚀', '🎈', '🐟', '🦋', '🌸', '⚽'
@@ -44,13 +48,98 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
     Navigator.pushReplacementNamed(context, '/home');
   }
 
+  /// Borra un perfil (mantener presionado). Confirma primero.
+  Future<void> _confirmDeleteProfile(Profile p) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('¿BORRAR PERFIL?',
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.danger, fontSize: 15)),
+        content: Text('Se quitará "${p.nickname}". Sus proyectos no se borran.',
+            style: const TextStyle(color: Colors.white54, fontSize: 13)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('CANCELAR',
+                  style: TextStyle(color: Colors.white38))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('BORRAR', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ProfileService.delete(p.id);
+      _load();
+    }
+  }
+
+  /// Reinicia TODOS los datos de prueba: perfiles, proyectos y la sala. Útil para
+  /// empezar a evaluar desde cero.
+  Future<void> _confirmResetAll() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('¿REINICIAR TODO?',
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.danger, fontSize: 15)),
+        content: const Text(
+          'Borra TODOS los perfiles, proyectos y la sala de este dispositivo. '
+          'No se puede deshacer. (Solo para empezar a evaluar desde cero.)',
+          style: TextStyle(color: Colors.white54, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('CANCELAR',
+                  style: TextStyle(color: Colors.white38))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('BORRAR TODO',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ProfileService.deleteAll();
+    await projectRepository.clearAll();
+    await WorkshopService.clear();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   /// Al tocar un perfil: si tiene clave, se pide; si no (perfil antiguo), entra.
   void _onProfileTap(Profile p) {
     if (p.imageKey.length == 3) {
       _showKeyEntry(p);
     } else {
-      _enter(p);
+      // Perfil sin clave (p. ej. compañero creado rápido): la crea la primera
+      // vez que entra, y desde ahí su perfil queda protegido.
+      _setKeyThenEnter(p);
     }
+  }
+
+  /// Primera entrada de un perfil sin clave: crea sus 3 imágenes y entra.
+  Future<void> _setKeyThenEnter(Profile p) async {
+    final key = await _pickKey(title: '¡Crea tu clave, ${p.nickname}!');
+    if (key == null) return; // canceló: no entra
+    final updated = Profile(
+      id: p.id,
+      nickname: p.nickname,
+      avatar: p.avatar,
+      imageKey: key,
+      role: p.role,
+    );
+    await ProfileService.save(updated);
+    if (!mounted) return;
+    await _enter(updated);
   }
 
   @override
@@ -64,6 +153,14 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
             style: TextStyle(
                 fontFamily: 'Lexend', color: AppColors.primary, fontSize: 18)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_rounded,
+                color: Colors.white38, size: 20),
+            tooltip: 'Reiniciar datos de prueba',
+            onPressed: _confirmResetAll,
+          ),
+        ],
       ),
       body: _loading
           ? const Center(
@@ -72,6 +169,32 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
           : Column(
               children: [
                 const SizedBox(height: 8),
+                if (activeWorkshopCode.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.meeting_room_rounded,
+                            color: AppColors.primary, size: 14),
+                        const SizedBox(width: 6),
+                        Text('Sala $activeWorkshopCode',
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontFamily: 'Lexend',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
                 Text(
                   _profiles.isEmpty
                       ? 'Crea tu perfil para empezar'
@@ -108,6 +231,7 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
       width: 92,
       child: GestureDetector(
         onTap: () => _onProfileTap(p),
+        onLongPress: () => _confirmDeleteProfile(p),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -122,6 +246,14 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                     color: Colors.white70, fontFamily: 'Lexend', fontSize: 13)),
+            if (p.role.isNotEmpty)
+              Text(p.role,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: AppColors.primary,
+                      fontFamily: 'Lexend',
+                      fontSize: 10)),
           ],
         ),
       ),
@@ -235,6 +367,12 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
                       fontFamily: 'Lexend',
                       fontSize: 16,
                       fontWeight: FontWeight.w600)),
+              if (p.role.isNotEmpty)
+                Text(p.role,
+                    style: const TextStyle(
+                        color: AppColors.primary,
+                        fontFamily: 'Lexend',
+                        fontSize: 12)),
               const SizedBox(height: 10),
               Text(
                 error
@@ -309,6 +447,7 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
       nickname: p.nickname,
       avatar: p.avatar,
       imageKey: newKey,
+      role: p.role,
     ));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -474,7 +613,9 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
   // ── Crear perfil ────────────────────────────────────────────────────────────
   void _showCreate() {
     final nameCtrl = TextEditingController();
+    final otherRoleCtrl = TextEditingController();
     String avatar = _avatars.first;
+    String role = ''; // '' = sin rol; o uno de _roles; 'Otro' usa otherRoleCtrl
     final key = <int>[];
 
     showModalBottomSheet(
@@ -535,6 +676,45 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
                       .toList(),
                 ),
                 const SizedBox(height: 16),
+                const Text('Rol en el taller',
+                    style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _roles.map((r) {
+                    final sel = role == r;
+                    return ChoiceChip(
+                      label: Text(r),
+                      selected: sel,
+                      showCheckmark: false,
+                      labelStyle: TextStyle(
+                          color: sel ? Colors.black : Colors.white70,
+                          fontFamily: 'Lexend',
+                          fontSize: 12),
+                      backgroundColor: Colors.white10,
+                      selectedColor: AppColors.primary,
+                      onSelected: (_) => setSheet(() => role = sel ? '' : r),
+                    );
+                  }).toList(),
+                ),
+                if (role == 'Otro') ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: otherRoleCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: '¿Cuál rol?',
+                      labelStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: Colors.white10,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
                 Text('Clave de imágenes (elige 3 en orden) · ${key.length}/3',
                     style:
                         const TextStyle(color: Colors.white54, fontSize: 12)),
@@ -584,11 +764,15 @@ class _ProfilePickerPageState extends State<ProfilePickerPage> {
                     onPressed: () async {
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty || key.length != 3) return;
+                      final finalRole = role == 'Otro'
+                          ? otherRoleCtrl.text.trim()
+                          : role;
                       final p = Profile(
                         id: 'p_${DateTime.now().microsecondsSinceEpoch}',
                         nickname: name,
                         avatar: avatar,
                         imageKey: List<int>.of(key),
+                        role: finalRole,
                       );
                       await ProfileService.save(p);
                       if (!ctx.mounted) return;

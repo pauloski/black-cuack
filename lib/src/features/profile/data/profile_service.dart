@@ -30,6 +30,29 @@ class ProfileService {
     await box.put(p.id, jsonEncode(p.toJson()));
   }
 
+  /// Borra un perfil por id.
+  static Future<void> delete(String id) async {
+    final box = await _box();
+    await box.delete(id);
+    if (activeProfileId == id) await setActive('');
+  }
+
+  /// Borra TODOS los perfiles (reinicio de datos de prueba).
+  static Future<void> deleteAll() async {
+    final box = await _box();
+    await box.clear();
+    await setActive('');
+  }
+
+  /// Perfil activo completo (apodo, rol, etc.) o null si no hay.
+  static Future<Profile?> getActive() async {
+    if (activeProfileId.isEmpty) return null;
+    final box = await _box();
+    final j = box.get(activeProfileId);
+    if (j == null) return null;
+    return Profile.fromJson(jsonDecode(j) as Map<String, dynamic>);
+  }
+
   /// Carga el perfil activo persistido (si existe) a [activeProfileId].
   static Future<void> loadActive() async {
     try {

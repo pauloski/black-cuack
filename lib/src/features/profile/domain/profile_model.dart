@@ -6,12 +6,16 @@ class Profile {
   final String nickname;
   final String avatar; // emoji
   final List<int> imageKey; // 3 índices
+  // Rol en el taller (HDU aula): 'Animador', 'Cámara', 'Director' o texto libre.
+  // '' = sin rol asignado.
+  final String role;
 
   Profile({
     required this.id,
     required this.nickname,
     required this.avatar,
     required this.imageKey,
+    this.role = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -19,6 +23,7 @@ class Profile {
         'nickname': nickname,
         'avatar': avatar,
         'imageKey': imageKey,
+        'role': role,
       };
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
@@ -27,5 +32,6 @@ class Profile {
         avatar: json['avatar'] ?? '🦆',
         imageKey: (json['imageKey'] as List?)?.map((e) => e as int).toList() ??
             const [],
+        role: json['role'] ?? '',
       );
 }
