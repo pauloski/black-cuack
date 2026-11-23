@@ -11,6 +11,13 @@ import 'package:blackcuack_studio/src/core/config/debug_flags.dart';
 import 'package:blackcuack_studio/src/core/config/feature_flags.dart';
 import 'package:blackcuack_studio/src/core/config/repositories.dart';
 import 'package:blackcuack_studio/src/core/services/local_project_service.dart';
+import 'package:blackcuack_studio/src/core/services/session_log_service.dart';
+import 'package:blackcuack_studio/src/features/profile/data/profile_service.dart';
+import 'package:blackcuack_studio/src/features/profile/domain/profile_model.dart';
+import 'package:blackcuack_studio/src/features/workshop/data/workshop_service.dart'
+    show activeWorkshopCode;
+import 'package:blackcuack_studio/src/features/workshop/presentation/team_helpers.dart'
+    show showAddTeammateDialog, showTeamSheet;
 import 'package:blackcuack_studio/src/core/theme/blackcuack_widgets.dart';
 import 'package:blackcuack_studio/src/core/utils/camera_select.dart';
 import 'package:blackcuack_studio/src/core/utils/frame_codec.dart';
@@ -29,11 +36,15 @@ class CameraPage extends StatefulWidget {
   final QuackProject? projectToLoad;
   final bool startRemoteSession;
   final String aspect; // '9:16' | '16:9' (proyecto nuevo)
+  final String? initialName; // nombre elegido al crear (proyecto nuevo)
+  final List<String> initialMembers; // ids de perfiles del equipo (proyecto nuevo)
   const CameraPage({
     super.key,
     this.projectToLoad,
     this.startRemoteSession = false,
     this.aspect = '9:16',
+    this.initialName,
+    this.initialMembers = const [],
   });
 
   @override
@@ -79,6 +90,14 @@ class _CameraPageState extends State<CameraPage> {
   // La "Versión de inicio" (solo el primer cuadro) se crea sola una vez. Evita
   // recrearla en cada captura.
   bool _inicioEnsured = false;
+  // Perfil activo (para etiquetar la autoría de las versiones).
+  Profile? _activeProfile;
+  // Al reabrir un proyecto de taller con versiones, se pregunta una vez cómo
+  // empezar la versión nueva (continuar / desde otra / desde 0).
+  bool _newVersionAsked = false;
+  // Equipo del proyecto (ids de perfiles): dueño + compañeros. Se define al
+  // crear (en Home) o se hereda del proyecto reabierto.
+  late List<String> _members;
   int previewIndex = 0;
   int? selectedIndex;
   bool _isExporting = false;
@@ -99,11 +118,42 @@ class _CameraPageState extends State<CameraPage> {
         ? widget.projectToLoad!.id
         : DateTime.now().millisecondsSinceEpoch.toString();
     _aspect = isEditing ? widget.projectToLoad!.aspect : widget.aspect;
-    _title = isEditing ? widget.projectToLoad!.name : 'Mi Animación';
+    _title = isEditing
+        ? widget.projectToLoad!.name
+        : (widget.initialName != null && widget.initialName!.trim().isNotEmpty
+            ? widget.initialName!.trim()
+            : 'Mi Animación');
+    _members = isEditing
+        ? List<String>.of(widget.projectToLoad!.memberProfileIds)
+        : List<String>.of(widget.initialMembers);
     _initCamera();
+    _loadActiveProfile();
     if (isEditing) {
       _hydrateFromProject();
     }
+  }
+
+  Future<void> _loadActiveProfile() async {
+    final p = await ProfileService.getActive();
+    if (mounted) setState(() => _activeProfile = p);
+  }
+
+  /// Nombre de autor para versiones: apodo del perfil activo o, si no hay,
+  /// el artista del proyecto.
+  String get _authorName =>
+      (_activeProfile?.nickname.isNotEmpty ?? false)
+          ? _activeProfile!.nickname
+          : (widget.projectToLoad?.artistName ?? '');
+  String get _authorRole => _activeProfile?.role ?? '';
+
+  /// Registro local de actividad (captura/versión) para el dashboard futuro.
+  void _logSession(String type) {
+    SessionLogService.log(
+      type: type,
+      workshopCode: activeWorkshopCode,
+      profileId: activeProfileId,
+      projectId: _projectId,
+    );
   }
 
   /// Persiste el borrador en curso (solo proyectos nuevos): un proyecto isDraft
@@ -115,7 +165,12 @@ class _CameraPageState extends State<CameraPage> {
     if (ids.isEmpty) return;
     try {
       await saveDraft(projectRepository,
-          id: _projectId, frameIds: ids, aspect: _aspect);
+          id: _projectId,
+          frameIds: ids,
+          name: _title, // nombre real del proyecto (ya no "Borrador")
+          artistName: _authorName,
+          aspect: _aspect,
+          memberProfileIds: _members);
     } catch (e) {
       debugPrint('No se pudo persistir el borrador: $e');
     }
@@ -155,6 +210,109 @@ class _CameraPageState extends State<CameraPage> {
     // Proyecto reabierto sin "Inicio" (anterior a esta función): lo crea desde
     // el primer cuadro local.
     await _ensureInicioVersion();
+    // Flujo de aula: al reabrir un proyecto de taller, preguntar cómo empezar
+    // la versión nueva (otro día = nueva versión). HDU5.
+    if (mounted) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _maybeAskNewVersionStart());
+    }
+  }
+
+  /// Al reabrir un proyecto **de taller con versiones**, ofrece empezar una
+  /// versión nueva: continuar la última, partir de otra versión, o desde 0.
+  Future<void> _maybeAskNewVersionStart() async {
+    if (_newVersionAsked || !isEditing || activeWorkshopCode.isEmpty) return;
+    _newVersionAsked = true;
+    final versions = await listVersions(projectRepository, _projectId);
+    if (!mounted || versions.isEmpty) return;
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('NUEVA VERSIÓN',
+            style: TextStyle(
+                fontFamily: 'Lexend', color: AppColors.primary, fontSize: 15)),
+        content: const Text(
+          '¿Cómo quieres empezar tu versión de hoy?',
+          style: TextStyle(color: Colors.white54, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'continue'),
+            child: const Text('Continuar la última',
+                style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'pick'),
+            child: const Text('Desde otra versión…',
+                style: TextStyle(color: AppColors.secondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'blank'),
+            child: const Text('Desde 0',
+                style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'blank') {
+      _pushUndo();
+      setState(() {
+        capturedPhotos = [];
+        _frameIds = [];
+        selectedIndex = null;
+        lastCapturedPhoto = null;
+      });
+      _showSnack('Lienzo en blanco: empieza tu versión', AppColors.primary);
+    } else if (choice == 'pick') {
+      await _pickVersionToStartFrom(versions);
+    }
+    // 'continue' o null: se mantienen los cuadros hidratados (última).
+  }
+
+  /// Selector simple de versión para "empezar desde otra".
+  Future<void> _pickVersionToStartFrom(List<QuackProject> versions) async {
+    final picked = await showModalBottomSheet<QuackProject>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('EMPEZAR DESDE…',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontFamily: 'Lexend',
+                      fontSize: 15)),
+            ),
+            ...versions.map((v) => ListTile(
+                  leading: Icon(
+                      v.name == 'Inicio'
+                          ? Icons.flag_rounded
+                          : Icons.bookmark_rounded,
+                      color: v.name == 'Inicio'
+                          ? AppColors.primary
+                          : AppColors.secondary),
+                  title: Text(v.name,
+                      style: const TextStyle(color: Colors.white)),
+                  subtitle: Text('${v.photoPaths.length} cuadros',
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 11)),
+                  onTap: () => Navigator.pop(ctx, v),
+                )),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) await _restoreVersion(picked);
   }
 
   Future<void> _initCamera() async {
@@ -252,7 +410,10 @@ class _CameraPageState extends State<CameraPage> {
     try {
       final raw = await file.readAsBytes();
       final sw = Stopwatch()..start();
-      final jpeg = compressFrameJpeg(raw, aspect: aspectValue(_aspect));
+      // Se guarda SIN recortar (aspecto del sensor): así el papel cebolla calza
+      // con la vista previa en vivo. El recorte al aspecto del proyecto se
+      // aplica solo al exportar y en el reproductor.
+      final jpeg = compressFrameJpeg(raw);
       sw.stop();
       debugPrint('⏱️ compresión (captura): ${sw.elapsedMilliseconds} ms/cuadro');
       compressionDebug.value = '${sw.elapsedMilliseconds} ms/cuadro';
@@ -261,6 +422,7 @@ class _CameraPageState extends State<CameraPage> {
       if (idx != -1 && idx < _frameIds.length) {
         _frameIds[idx] = id;
         await _persistDraft(); // borrador incremental (HDU1)
+        _logSession('capture');
         await _ensureInicioVersion(); // respaldo "Inicio" con el primer cuadro
       }
       // Si el cuadro se borró antes de comprimirse, queda huérfano y lo limpia
@@ -423,32 +585,6 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   // ── Versiones (HDU5) ───────────────────────────────────────────────────────
-  Future<void> _saveVersion() async {
-    await _compressQueue;
-    final ids = _frameIds.whereType<String>().toList();
-    if (ids.isEmpty) {
-      _showSnack('Captura algunos cuadros primero', AppColors.danger);
-      return;
-    }
-    // Cuenta las versiones del usuario (excluye "Inicio", que es el respaldo
-    // automático del primer cuadro) para sugerir el número.
-    final existing = await listVersions(projectRepository, _projectId);
-    if (!mounted) return;
-    final userVersions = existing.where((v) => v.name != 'Inicio').length;
-    final suggested = 'Versión ${userVersions + 1}';
-    final name = await _promptName(
-        title: 'NOMBRE DE LA VERSIÓN', initial: suggested);
-    if (name == null) return; // cancelado
-    final author = widget.projectToLoad?.artistName ?? '';
-    await saveVersion(projectRepository,
-        parentId: _projectId,
-        frameIds: ids,
-        author: author,
-        aspect: _aspect,
-        name: name.trim().isEmpty ? suggested : name.trim());
-    if (mounted) _showSnack('Versión guardada 📑', AppColors.secondary);
-  }
-
   /// Crea una sola vez la "Versión de inicio" automática: **solo el primer
   /// cuadro** del proyecto, como punto de partida/respaldo desde el que un grupo
   /// ramifica. Se llama al capturar/hidratar el primer cuadro; no-op si ya existe.
@@ -464,9 +600,12 @@ class _CameraPageState extends State<CameraPage> {
     await saveVersion(projectRepository,
         parentId: _projectId,
         frameIds: [ids.first], // punto de inicio = primer cuadro
-        author: widget.projectToLoad?.artistName ?? '',
+        author: _authorName,
+        authorRole: _authorRole,
+        participantIds: [if (activeProfileId.isNotEmpty) activeProfileId],
         aspect: _aspect,
         name: 'Inicio');
+    _logSession('version');
     _inicioEnsured = true;
   }
 
@@ -540,6 +679,8 @@ class _CameraPageState extends State<CameraPage> {
 
   void _showVersions() async {
     var versions = await listVersions(projectRepository, _projectId);
+    var profiles = await ProfileService.list();
+    var profileMap = {for (final p in profiles) p.id: p};
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -552,7 +693,13 @@ class _CameraPageState extends State<CameraPage> {
         builder: (ctx, setSheet) {
           Future<void> reload() async {
             final v = await listVersions(projectRepository, _projectId);
-            if (mounted) setSheet(() => versions = v);
+            profiles = await ProfileService.list();
+            if (mounted) {
+              setSheet(() {
+                versions = v;
+                profileMap = {for (final p in profiles) p.id: p};
+              });
+            }
           }
           return SingleChildScrollView(
             child: Padding(
@@ -571,13 +718,13 @@ class _CameraPageState extends State<CameraPage> {
                   if (versions.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                          'Aún no hay versiones. Toca "Guardar versión".',
+                      child: Text('Aún no hay versiones. Guarda tu trabajo.',
                           style:
                               TextStyle(color: Colors.white38, fontSize: 13)),
                     )
                   else
-                    ...versions.map((v) => _versionTile(ctx, v, reload)),
+                    ...versions.map(
+                        (v) => _versionTile(ctx, v, reload, profileMap)),
                 ],
               ),
             ),
@@ -587,22 +734,76 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  Widget _versionTile(
-      BuildContext ctx, QuackProject v, Future<void> Function() reload) {
+  /// Participantes de una versión: "apodo · rol" si es uno, o "Grupo 🦆🐸" si
+  /// son varios. Versiones antiguas (sin participantes) usan autor/rol.
+  String _versionParticipantsLine(QuackProject v, Map<String, Profile> pm) {
+    final ids = v.memberProfileIds;
+    if (ids.isEmpty) {
+      if (v.isCollaborative) return 'Grupo';
+      final who =
+          v.artistName.trim().isEmpty ? 'Sin autor' : v.artistName.trim();
+      return v.authorRole.isEmpty ? who : '$who · ${v.authorRole}';
+    }
+    if (ids.length == 1) {
+      final p = pm[ids.first];
+      if (p == null) return 'Participante';
+      return p.role.isEmpty ? p.nickname : '${p.nickname} · ${p.role}';
+    }
+    final avatars = ids.take(4).map((id) => pm[id]?.avatar ?? '👤').join(' ');
+    final extra = ids.length > 4 ? ' +${ids.length - 4}' : '';
+    return 'Grupo: $avatars$extra';
+  }
+
+  Widget _versionTile(BuildContext ctx, QuackProject v,
+      Future<void> Function() reload, Map<String, Profile> pm) {
     final isInicio = v.name == 'Inicio';
+    final isGroup = v.isCollaborative || v.memberProfileIds.length > 1;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(isInicio ? Icons.flag_rounded : Icons.bookmark_rounded,
           color: isInicio ? AppColors.primary : AppColors.secondary),
-      title: Text(v.name,
-          style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'Lexend',
-              fontSize: 14,
-              fontWeight: FontWeight.w600)),
-      subtitle: Text(
-          '${v.photoPaths.length} cuadros · ${v.date.day}/${v.date.month} ${v.date.hour}:${v.date.minute.toString().padLeft(2, '0')}',
-          style: const TextStyle(color: Colors.white38, fontSize: 11)),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(v.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Lexend',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+          ),
+          if (isGroup) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text('GRUPO',
+                  style: TextStyle(
+                      color: AppColors.secondary,
+                      fontFamily: 'Lexend',
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _versionParticipantsLine(v, pm),
+            style: const TextStyle(color: Colors.white54, fontSize: 11),
+          ),
+          Text(
+            '${v.photoPaths.length} cuadros · ${v.date.day}/${v.date.month} ${v.date.hour}:${v.date.minute.toString().padLeft(2, '0')}',
+            style: const TextStyle(color: Colors.white30, fontSize: 10),
+          ),
+        ],
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -622,11 +823,27 @@ class _CameraPageState extends State<CameraPage> {
               if (s == 'rename') {
                 await _renameVersion(v);
                 await reload();
+              } else if (s == 'participants') {
+                final picked = await showTeamSheet(
+                  context,
+                  initial: v.memberProfileIds.toSet(),
+                  owner: '',
+                  title: 'PARTICIPANTES DE "${v.name}"',
+                );
+                if (picked != null) {
+                  await projectRepository.saveProject(v.copyWith(
+                    memberProfileIds: picked.toList(),
+                    isCollaborative: picked.length > 1,
+                  ));
+                }
+                await reload();
               } else if (s == 'dup') {
                 await saveVersion(projectRepository,
                     parentId: _projectId,
                     frameIds: v.photoPaths,
                     author: v.artistName,
+                    authorRole: v.authorRole,
+                    participantIds: v.memberProfileIds,
                     aspect: _aspect,
                     name: '${v.name} (copia)');
                 if (mounted) _showSnack('Versión duplicada', AppColors.secondary);
@@ -639,6 +856,10 @@ class _CameraPageState extends State<CameraPage> {
                   child: Text('Renombrar',
                       style: TextStyle(color: Colors.white))),
               PopupMenuItem(
+                  value: 'participants',
+                  child: Text('Editar participantes',
+                      style: TextStyle(color: Colors.white))),
+              PopupMenuItem(
                   value: 'dup',
                   child:
                       Text('Duplicar', style: TextStyle(color: Colors.white))),
@@ -649,75 +870,199 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  /// Renombra el proyecto (lápiz junto al título). Si el proyecto ya existe en
-  /// el repo, persiste el nuevo nombre de inmediato.
-  Future<void> _renameTitle() async {
-    final ctrl = TextEditingController(text: _title);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('TÍTULO',
-            style: TextStyle(
-                fontFamily: 'Lexend', color: AppColors.primary, fontSize: 16)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white, fontFamily: 'Lexend'),
-          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-          decoration: InputDecoration(
-            hintText: 'Nombre de la animación',
-            hintStyle: const TextStyle(color: Colors.white38),
-            filled: true,
-            fillColor: Colors.white10,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('CANCELAR',
-                  style: TextStyle(color: Colors.white38))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('LISTO',
-                style: TextStyle(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-    if (name == null || name.isEmpty) return;
-    setState(() => _title = name);
-    // Si ya hay un registro guardado (proyecto o borrador), persiste el nombre.
-    final existing = await projectRepository.getProject(_projectId);
-    if (existing != null) {
-      await saveCapturedProject(
-        projectRepository,
-        id: _projectId,
-        name: name,
-        artistName: existing.artistName,
-        frames: existing.photoPaths.map(CapturedFrame.existing).toList(),
-        isPublished: existing.isPublished,
-        workshopCode: existing.workshopCode,
-        isDraft: existing.isDraft,
-        aspect: existing.aspect,
-      );
-    }
-  }
-
-  void _handleSaveAction() {
+  Future<void> _handleSaveAction() async {
     if (capturedPhotos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Toma algunas fotos antes de guardar")),
       );
       return;
     }
-    _cameraViewerKey.currentState?.showSaveDialog(context, initialName: _title);
+    // Guardar UNIFICADO: nombra el proyecto y, si se quiere, crea una versión
+    // con sus participantes (todo en un solo diálogo).
+    final existing = await listVersions(projectRepository, _projectId);
+    if (!mounted) return;
+    final userVersions = existing.where((v) => v.name != 'Inicio').length;
+    final allProfiles = await ProfileService.list();
+    if (!mounted) return;
+    final result = await _showUnifiedSaveDialog(
+      suggestedVersion: 'Versión ${userVersions + 1}',
+      allProfiles: allProfiles,
+    );
+    if (result == null) return;
+    setState(() => _title = result.projectName);
+    // 1) Versión (si se pidió), con participantes.
+    if (result.newVersion) {
+      await _compressQueue;
+      final ids = _frameIds.whereType<String>().toList();
+      if (ids.isNotEmpty) {
+        await saveVersion(projectRepository,
+            parentId: _projectId,
+            frameIds: ids,
+            name: result.versionName,
+            participantIds: result.participants,
+            aspect: _aspect);
+        _logSession('version');
+      }
+    }
+    // 2) Finaliza el guardado del proyecto (y vuelve a Inicio).
+    await _saveLocally(name: result.projectName, artist: _authorName);
+  }
+
+  /// Diálogo GUARDAR unificado: nombre del proyecto + "¿nueva versión?" (nombre
+  /// + participantes). Devuelve null si se cancela.
+  Future<
+      ({
+        String projectName,
+        bool newVersion,
+        String versionName,
+        List<String> participants
+      })?> _showUnifiedSaveDialog({
+    required String suggestedVersion,
+    required List<Profile> allProfiles,
+  }) {
+    final nameCtrl = TextEditingController(text: _title);
+    final versionCtrl = TextEditingController(text: suggestedVersion);
+    bool newVersion = true;
+    // Participantes posibles = miembros del proyecto (o todos si no hay).
+    final team = _members.isEmpty
+        ? allProfiles
+        : allProfiles.where((p) => _members.contains(p.id)).toList();
+    final selected = <String>{
+      ...team.map((p) => p.id),
+    }; // por defecto participan todos los del equipo
+    final profiles = List<Profile>.of(team);
+    return showDialog<
+        ({
+          String projectName,
+          bool newVersion,
+          String versionName,
+          List<String> participants
+        })>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text('GUARDAR',
+              style: TextStyle(
+                  fontFamily: 'Lexend', color: AppColors.primary, fontSize: 16)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Nombre del proyecto',
+                    style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nameCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Nombre del proyecto',
+                    hintStyle: const TextStyle(color: Colors.white24),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const Divider(color: Colors.white12, height: 28),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Guardar como nueva versión',
+                      style: TextStyle(color: Colors.white, fontSize: 14)),
+                  value: newVersion,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: (v) => setD(() => newVersion = v),
+                ),
+                if (newVersion) ...[
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: versionCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Nombre de la versión',
+                      labelStyle: const TextStyle(color: Colors.white38),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('¿Quiénes participaron?',
+                      style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ...profiles.map((p) {
+                        final sel = selected.contains(p.id);
+                        return FilterChip(
+                          label: Text(
+                              '${p.avatar} ${p.nickname}${p.role.isEmpty ? '' : ' · ${p.role}'}'),
+                          selected: sel,
+                          showCheckmark: false,
+                          labelStyle: TextStyle(
+                              color: sel ? Colors.black : Colors.white70,
+                              fontFamily: 'Lexend',
+                              fontSize: 12),
+                          backgroundColor: Colors.white10,
+                          selectedColor: AppColors.primary,
+                          onSelected: (v) => setD(() =>
+                              v ? selected.add(p.id) : selected.remove(p.id)),
+                        );
+                      }),
+                      ActionChip(
+                        avatar: const Icon(Icons.person_add_alt_1_rounded,
+                            size: 16, color: AppColors.secondary),
+                        label: const Text('Nuevo',
+                            style: TextStyle(
+                                color: AppColors.secondary,
+                                fontFamily: 'Lexend',
+                                fontSize: 12)),
+                        backgroundColor: Colors.white10,
+                        onPressed: () async {
+                          final p = await showAddTeammateDialog(ctx);
+                          if (p != null) {
+                            setD(() {
+                              profiles.add(p);
+                              selected.add(p.id);
+                              _members = {..._members, p.id}.toList();
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('CANCELAR')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary),
+              onPressed: () {
+                final pName = nameCtrl.text.trim().isEmpty
+                    ? _title
+                    : nameCtrl.text.trim();
+                Navigator.pop(ctx, (
+                  projectName: pName,
+                  newVersion: newVersion,
+                  versionName: versionCtrl.text.trim().isEmpty
+                      ? suggestedVersion
+                      : versionCtrl.text.trim(),
+                  participants: selected.toList(),
+                ));
+              },
+              child:
+                  const Text('GUARDAR', style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Guarda el proyecto en el **repositorio local** (sin Firebase). Conserva los
@@ -755,6 +1100,7 @@ class _CameraPageState extends State<CameraPage> {
         workshopCode: groupCode,
         isDraft: false, // "Guardar" finaliza el borrador
         aspect: _aspect,
+        memberProfileIds: _members,
       );
 
       _quackSavedToast();
@@ -994,6 +1340,7 @@ class _CameraPageState extends State<CameraPage> {
       final result = await VideoCreator.exportAs(
         format, paths, fps,
         filename: filename,
+        aspect: aspectValue(_aspect),
         onProgress: (p) => setState(() => _exportProgress = p),
       );
       if (!mounted) return;
@@ -1186,11 +1533,12 @@ class _CameraPageState extends State<CameraPage> {
     final isPhone = media.size.shortestSide < 600;
     final enforceOrientation = kIsWeb && isPhone;
     _maybeEnterImmersive(isPhone);
-    if (enforceOrientation && media.orientation != _requiredOrientation) {
-      // Bloquea la captura (no se renderiza el editor) hasta girar: así no se
-      // guardan cuadros torcidos ni se rompe el layout.
-      return _buildRotateOverlay(_requiredOrientation);
-    }
+    // Orientación incorrecta: NO se desmonta el visor (si se desmontara, al rotar
+    // y volver la textura de video queda congelada y el papel cebolla se
+    // descuadra, como pasaba con la reproducción). Se muestra el aviso "gira el
+    // teléfono" como capa ENCIMA, dejando el CameraPreview montado y en vivo.
+    final wrongOrientation =
+        enforceOrientation && media.orientation != _requiredOrientation;
 
     return PopScope(
       canPop: false,
@@ -1224,6 +1572,9 @@ class _CameraPageState extends State<CameraPage> {
         // CameraPreview nunca se desmonta y al detener sigue en vivo (si se
         // desmontara, en web la textura de video queda congelada). HDU3.
         if (isPlaying) Positioned.fill(child: _buildCinemaMode()),
+        // Aviso "gira el teléfono" como capa (el visor sigue montado debajo).
+        if (wrongOrientation)
+          Positioned.fill(child: _buildRotateOverlay(_requiredOrientation)),
         if (_isExporting) _buildExportOverlay(),
         if (kShowDebugOverlay)
           Positioned(
@@ -1357,11 +1708,8 @@ class _CameraPageState extends State<CameraPage> {
                 ),
               ),
             ),
-            _projectMenuItem(ctx, Icons.edit_outlined, 'Renombrar', _renameTitle),
             _projectMenuItem(ctx, Icons.undo_rounded, 'Deshacer',
                 _undo.isNotEmpty ? _handleUndo : null),
-            _projectMenuItem(ctx, Icons.bookmark_add_outlined,
-                'Guardar versión', hasPhotos ? _saveVersion : null),
             _projectMenuItem(
                 ctx, Icons.history_rounded, 'Ver versiones', _showVersions),
             _projectMenuItem(ctx, Icons.ios_share, 'Exportar',
